@@ -19,21 +19,21 @@ function App() {
   const mousePositionRef = useRef(new THREE.Vector2());
   const raycasterRef = useRef(new THREE.Raycaster());
 
-  let cabinet
-  let hearts = []
-  let choice = 0
+  let cabinet;
+  let hearts = [];
+  let choice = 0;
 
   const defaultModule = {
     name: 'Default Cabinet',
-    model: '/assets/TA_DEMO.glb', // Path to the default module from local storage
+    model: '/assets/TA_DEMO2.glb', // Path to the default module from local storage
   };
   const defaultModule2 = {
     name: 'Default Cabinet',
-    model: '/assets/xanngang.glb', // Path to the default module from local storage
+    model: '/assets/xanngang1.glb', // Path to the default module from local storage
   };
   const defaultModule1 = {
     name: 'Default Cabinet',
-    model: '/assets/xandoc.glb', // Path to the default module from local storage
+    model: '/assets/xandoc1.glb', // Path to the default module from local storage
   };
 
   const modules = [
@@ -76,7 +76,6 @@ function App() {
     }
     // Tính các góc còn lại dựa trên min và max
 
-
     return corners;
   };
 
@@ -108,7 +107,7 @@ function App() {
           corners: corners,
           orientation: orientation,
         });
-      } else if (child.name === "HAU") {
+      } else if (child.name === 'HAU') {
         // child.visible = false;
       }
     });
@@ -129,30 +128,48 @@ function App() {
   }
 
   function findPoint(mesh) {
-    hearts = []
+    hearts = [];
     mesh?.traverse((child) => {
-      if (child.name.includes("CHECK")) {
-        const size = setSizeGLB(child)
+      if (!child.name.includes('CHECK')) {
+        const size = setSizeGLB(child);
+        let orientation;
+        if (size.y < size.x && size.y < size.z) {
+          orientation = 0; // Mesh ngang
+        } else {
+          if (size.x < size.y && size.x < size.z) {
+            orientation = 2; //
+          } else {
+            orientation = 1; // Mesh dọc
+          }
+        }
+
+        const box = new THREE.Box3().setFromObject(child);
+        const min = box.min;
+        const max = box.max;
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+
         hearts.push({
           mX: {
-            min: child.position.x - size.x / 2,
-            org: child.position.x,
-            max: child.position.x + size.x / 2,
+            min: min.x,
+            org: center.x, // Giá trị trung tâm theo trục X
+            max: max.x,
           },
           mZ: {
-            min: child.position.z - size.z / 2,
-            org: child.position.z,
-            max: child.position.z + size.z / 2,
+            min: min.z,
+            org: center.z, // Giá trị trung tâm theo trục Z
+            max: max.z,
           },
           mY: {
-            min: child.position.y - size.y / 2,
-            org: child.position.y,
-            max: child.position.y + size.y / 2,
+            min: min.y,
+            org: center.y, // Giá trị trung tâm theo trục Y
+            max: max.y,
           },
-          mesh: child
-        })
+          mesh: child,
+          orientation: orientation,
+        });
       }
-    })
+    });
   }
 
   useEffect(() => {
@@ -176,7 +193,7 @@ function App() {
     const loader = new GLTFLoader();
     loader.load(defaultModule.model, (gltf) => {
       const model = gltf.scene;
-      cabinet = gltf.scene
+      cabinet = gltf.scene;
       model.position.set(0, 0, 0); // Place the default module at the
 
       const corners = saveMeshCorners(model);
@@ -184,7 +201,7 @@ function App() {
       createCornerMarkers(corners, display.scene);
 
       display.scene.add(model);
-      findPoint(cabinet)
+      findPoint(cabinet);
     });
 
     const cannonDebugger = new CannonDebugger(display.scene, world);
@@ -210,7 +227,6 @@ function App() {
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('click', handleMouseClick);
     document.addEventListener('keydown', handleButtonDown);
-
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
@@ -249,101 +265,162 @@ function App() {
       -((event.clientY - rect.top) / rect.height) * 2 + 1;
   }, []);
 
-  const handleButtonDown = useCallback((event) => {
-    if (event.key == 0) {
-      choice = 0
-    }
-    if (event.key == 1) {
-      choice = 1
-    }
-  }, [display])
-
-  const handleMouseClick = useCallback((event) => {
-    // chien check
-    const canvas = document.getElementById('myThreeJsCanvas');
-    const rect = canvas.getBoundingClientRect();
-    mousePositionRef.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    mousePositionRef.current.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-    raycasterRef.current.setFromCamera(mousePositionRef.current, display.camera);
-    const intersects = raycasterRef.current.intersectObjects(display.scene.children, true);
-
-    function getMidpoint(v1, v2) {
-      return new THREE.Vector3(
-        (v1.x + v2.x) / 2,
-        (v1.y + v2.y) / 2,
-        (v1.z + v2.z) / 2
-      );
-    }
-    if (intersects.length > 0) {
-      const intersection = intersects[0];
-      const intersectionPoint = intersection.point;
-      const loader = new GLTFLoader();
-      if (choice == 0) {
-        loader.load(defaultModule2.model, (gltf) => {
-          const model = gltf.scene.children[0];
-
-          let minDistanceD
-          let minDistanceA
-          hearts.forEach(point => {
-            if (intersectionPoint.y < point.mY.max && intersectionPoint.y > point.mY.min) {
-              if (intersectionPoint.z < point.mZ.org && (!minDistanceA || point.mZ.org < minDistanceA.mZ.org)) {
-                minDistanceA = point
-              } else if (intersectionPoint.z > point.mZ.org && (!minDistanceD || point.mZ.org > minDistanceD.mZ.org)) {
-                minDistanceD = point
-              }
-            }
-          });
-
-          const sizeD = setSizeGLB(minDistanceD.mesh)
-          const sizeA = setSizeGLB(minDistanceA.mesh)
-
-          model.position.copy(getMidpoint(minDistanceA.mesh.position, minDistanceD.mesh.position));
-          model.position.y = intersectionPoint.y
-          const scaleY = Math.abs(minDistanceD.mesh.position.z - minDistanceA.mesh.position.z)
-          const originalSize = setSizeGLB(model)
-          const originalScale = model.scale.clone()
-          model.scale.z = (scaleY - (sizeD.z / 2 + sizeA.z / 2)) * originalScale.z / originalSize.z
-          cabinet.add(model);
-          findPoint(cabinet)
-        });
-      } else if (choice == 1) {
-        loader.load(defaultModule1.model, (gltf) => {
-          const model = gltf.scene.children[0];
-          let minDistanceD
-          let minDistanceA
-          hearts.forEach(point => {
-            if (intersectionPoint.z < point.mZ.max && intersectionPoint.z > point.mZ.min) {
-              if (intersectionPoint.y < point.mY.org && (!minDistanceA || point.mY.org < minDistanceA.mY.org)) {
-                minDistanceA = point
-              } else if (intersectionPoint.y > point.mY.org && (!minDistanceD || point.mY.org > minDistanceD.mY.org)) {
-                minDistanceD = point
-              }
-            }
-          });
-
-
-
-          const sizeD = setSizeGLB(minDistanceD.mesh)
-          const sizeA = setSizeGLB(minDistanceA.mesh)
-
-          model.position.copy(getMidpoint(minDistanceA.mesh.position, minDistanceD.mesh.position));
-          model.position.z = intersectionPoint.z
-          const scaleZ = Math.abs(minDistanceD.mesh.position.y - minDistanceA.mesh.position.y)
-          const originalSize = setSizeGLB(model)
-          const originalScale = model.scale.clone()
-          model.scale.y = (scaleZ - (sizeD.y / 2 + sizeA.y / 2)) * originalScale.y / originalSize.y
-          cabinet.add(model);
-          findPoint(cabinet)
-        });
+  const handleButtonDown = useCallback(
+    (event) => {
+      if (event.key == 0) {
+        choice = 0;
       }
-    }
-  }, [display]);
+      if (event.key == 1) {
+        choice = 1;
+      }
+    },
+    [display]
+  );
+
+  const handleMouseClick = useCallback(
+    (event) => {
+      // chien check
+      const canvas = document.getElementById('myThreeJsCanvas');
+      const rect = canvas.getBoundingClientRect();
+      mousePositionRef.current.x =
+        ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mousePositionRef.current.y =
+        -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      raycasterRef.current.setFromCamera(
+        mousePositionRef.current,
+        display.camera
+      );
+      const intersects = raycasterRef.current.intersectObjects(
+        display.scene.children,
+        true
+      );
+
+      function getMidpoint(v1, v2) {
+        return new THREE.Vector3(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
+      }
+
+      function getPoint(v1, v2) {
+        return new THREE.Vector3(
+          Math.min(v1.x, v2.x),
+          Math.min(v1.y, v2.y),
+          Math.max(v1.z, v2.z)
+        );
+      }
+
+      if (intersects.length > 0) {
+        const intersection = intersects[0];
+        const intersectionPoint = intersection.point;
+        const loader = new GLTFLoader();
+        if (choice == 0) {
+          loader.load(defaultModule2.model, (gltf) => {
+            const model = gltf.scene.children[0];
+
+            let minDistanceD;
+            let minDistanceA;
+            hearts.forEach((point) => {
+              if (
+                intersectionPoint.y < point.mY.max &&
+                intersectionPoint.y > point.mY.min &&
+                point.orientation === 1
+              ) {
+                if (
+                  intersectionPoint.z < point.mZ.org &&
+                  (!minDistanceA || point.mZ.org < minDistanceA.mZ.org)
+                ) {
+                  minDistanceA = point;
+                } else if (
+                  intersectionPoint.z > point.mZ.org &&
+                  (!minDistanceD || point.mZ.org > minDistanceD.mZ.org)
+                ) {
+                  minDistanceD = point;
+                }
+              }
+            });
+
+            const sizeD = setSizeGLB(minDistanceD.mesh);
+            const sizeA = setSizeGLB(minDistanceA.mesh);
+
+            // model.position.copy(
+            //   getPoint(minDistanceA.mesh.position, minDistanceD.mesh.position)
+            // );
+
+            model.position.x = Math.min(minDistanceD.mesh.position.x, minDistanceA.mesh.position.x);
+            model.position.z = minDistanceA.mesh.position.z - sizeA.z;
+            model.position.y = intersectionPoint.y;
+            // model.children[0].position.copy(model.position);
+            const scaleY = Math.abs(
+              minDistanceD.mesh.position.z - minDistanceA.mesh.position.z
+            );
+            const originalSize = setSizeGLB(model);
+            const originalScale = model.scale.clone();
+            model.scale.z =
+              ((scaleY - (sizeD.z / 2 + sizeA.z / 2)) * originalScale.z) /
+              originalSize.z;
+            cabinet.add(model);
+            findPoint(cabinet);
+          });
+        } else if (choice == 1) {
+          loader.load(defaultModule1.model, (gltf) => {
+            const model = gltf.scene.children[0];
+            let minDistanceD;
+            let minDistanceA;
+            hearts.forEach((point) => {
+              if (
+                intersectionPoint.z < point.mZ.max &&
+                intersectionPoint.z > point.mZ.min &&
+                point.orientation === 0
+              ) {
+                if (
+                  intersectionPoint.y < point.mY.org &&
+                  (!minDistanceA || point.mY.org < minDistanceA.mY.org)
+                ) {
+                  minDistanceA = point;
+                } else if (
+                  intersectionPoint.y > point.mY.org &&
+                  (!minDistanceD || point.mY.org > minDistanceD.mY.org)
+                ) {
+                  minDistanceD = point;
+                }
+              }
+            });
+
+            const sizeD = setSizeGLB(minDistanceD.mesh);
+            const sizeA = setSizeGLB(minDistanceA.mesh);
+
+            // model.position.copy(
+            //   getPoint(minDistanceA.mesh.position, minDistanceD.mesh.position)
+            // );
+            model.position.x = Math.min(minDistanceD.mesh.position.x, minDistanceA.mesh.position.x);
+            model.position.y = minDistanceD.mesh.position.y + sizeD.y;
+            model.position.z = intersectionPoint.z;
+            const scaleZ = Math.abs(
+              minDistanceD.mesh.position.y - minDistanceA.mesh.position.y
+            );
+            const originalSize = setSizeGLB(model);
+            const originalScale = model.scale.clone();
+            model.scale.y =
+              ((scaleZ - (sizeD.y / 2 + sizeA.y / 2)) * originalScale.y) /
+              originalSize.y;
+            cabinet.add(model);
+            findPoint(cabinet);
+          });
+        }
+      }
+    },
+    [display]
+  );
 
   const updatePreviewPosition = () => {
     // Sử dụng raycaster để lấy giao điểm với các vật thể trong cảnh
-    raycasterRef.current.setFromCamera(mousePositionRef.current, display.camera);
+    raycasterRef.current.setFromCamera(
+      mousePositionRef.current,
+      display.camera
+    );
 
-    const intersects = raycasterRef.current.intersectObjects(display.scene.children, true);
+    const intersects = raycasterRef.current.intersectObjects(
+      display.scene.children,
+      true
+    );
 
     if (intersects.length > 0) {
       // Lấy điểm giao đầu tiên (gần nhất)
@@ -359,13 +436,18 @@ function App() {
       isDraggingRef.current = false;
 
       // Tính toán vị trí cuối cùng của chuột trong không gian 3D
-      raycasterRef.current.setFromCamera(mousePositionRef.current, display.camera);
+      raycasterRef.current.setFromCamera(
+        mousePositionRef.current,
+        display.camera
+      );
 
       // Mặt phẳng giả định song song với trục Y (mặt đất)
       const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
       const intersectionPoint = new THREE.Vector3();
 
-      if (raycasterRef.current.ray.intersectPlane(groundPlane, intersectionPoint)) {
+      if (
+        raycasterRef.current.ray.intersectPlane(groundPlane, intersectionPoint)
+      ) {
         console.log('Final Mouse 3D Position:', intersectionPoint);
 
         // Load model thực tại vị trí cuối cùng
@@ -378,7 +460,6 @@ function App() {
       }
     }
   }, [display]);
-
 
   const handleDragStart = (e, module) => {
     e.preventDefault();
