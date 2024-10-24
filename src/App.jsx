@@ -188,6 +188,18 @@ function App() {
     groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
     world.addBody(groundBody);
 
+    const planeGeometry = new THREE.PlaneGeometry(10, 5); // Kích thước của mặt phẳng
+    const planeMaterial = new THREE.MeshBasicMaterial({
+      color: 0xfffdd0,
+      side: THREE.DoubleSide,
+    });
+    const yzPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+    yzPlane.position.set(0, 2.5, 0);
+
+    yzPlane.rotation.y = Math.PI / 2; // Quay mặt phẳng để nó nằm trên mặt YZ
+
+    // display.scene.add(yzPlane);
+
     // loadDefaultModule(defaultModule);
 
     const loader = new GLTFLoader();
@@ -344,7 +356,10 @@ function App() {
             //   getPoint(minDistanceA.mesh.position, minDistanceD.mesh.position)
             // );
 
-            model.position.x = Math.min(minDistanceD.mesh.position.x, minDistanceA.mesh.position.x);
+            model.position.x = Math.min(
+              minDistanceD.mesh.position.x,
+              minDistanceA.mesh.position.x
+            );
             model.position.z = minDistanceA.mesh.position.z - sizeA.z;
             model.position.y = intersectionPoint.y;
             // model.children[0].position.copy(model.position);
@@ -390,7 +405,10 @@ function App() {
             // model.position.copy(
             //   getPoint(minDistanceA.mesh.position, minDistanceD.mesh.position)
             // );
-            model.position.x = Math.min(minDistanceD.mesh.position.x, minDistanceA.mesh.position.x);
+            model.position.x = Math.min(
+              minDistanceD.mesh.position.x,
+              minDistanceA.mesh.position.x
+            );
             model.position.y = minDistanceD.mesh.position.y + sizeD.y;
             model.position.z = intersectionPoint.z;
             const scaleZ = Math.abs(
