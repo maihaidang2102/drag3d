@@ -23,6 +23,7 @@ export default class SceneInit {
     // NOTE: Lighting is basically required.
     this.ambientLight = undefined;
     this.directionalLight = undefined;
+    this.spotLight = undefined;
   }
 
   initialize() {
@@ -54,15 +55,24 @@ export default class SceneInit {
     document.body.appendChild(this.stats.dom);
 
     // ambient light which is for the whole scene
-    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     this.ambientLight.castShadow = true;
     this.scene.add(this.ambientLight);
 
     // directional light - parallel sun rays
-    this.directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    this.directionalLight = new THREE.DirectionalLight(0xffffff, 10);
     // this.directionalLight.castShadow = true;
     this.directionalLight.position.set(0, 32, 64);
     this.scene.add(this.directionalLight);
+
+    this.spotLight = new THREE.SpotLight(0xffffff, 10);
+    this.spotLight.position.set(5, 3, 0);
+    this.spotLight.target.position.set(0, 0, 0); // Hướng về gốc tọa độ
+    this.spotLight.angle = Math.PI / 4; // Góc chiếu 45 độ
+    this.spotLight.penumbra = 0.1; // Độ mềm của viền ánh sáng
+    this.spotLight.decay = 2; // Độ giảm cường độ theo khoảng cách
+    this.spotLight.distance = 100; // Khoảng cách tối đa của ánh sáng
+    this.spotLight.castShadow = true;
 
     // const axesHelper = new THREE.AxesHelper(15); // kích thước 5
     // this.scene.add(axesHelper);

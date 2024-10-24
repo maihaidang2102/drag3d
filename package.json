@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^1.0.7",
+    "sass": "^1.80.4",
     "vite": "^2.8.0",
     "vite-plugin-glsl": "^0.1.2"
   }

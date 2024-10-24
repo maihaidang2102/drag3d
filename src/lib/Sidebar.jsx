@@ -1,4 +1,5 @@
 import React from 'react';
+import './Sidebar.scss'; // Import the CSS file
 
 const Sidebar = ({ modules, onDragStart }) => {
   return (
@@ -11,8 +12,8 @@ const Sidebar = ({ modules, onDragStart }) => {
             onMouseDown={(e) => onDragStart(e, module)}
             className="module-item"
           >
-            <img src={module.image} alt={module.name} />
-            <span>{module.name}</span>
+            <img src={module.image} alt={module.name} className="module-image" />
+            <span className="module-name">{module.name}</span>
           </li>
         ))}
       </ul>
