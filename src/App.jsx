@@ -177,13 +177,13 @@ function App() {
   //               orientation = 1; // Mesh dọc
   //             }
   //           }
-    
+
   //           const box = new THREE.Box3().setFromObject(children);
   //           const min = box.min;
   //           const max = box.max;
   //           const center = new THREE.Vector3();
   //           box.getCenter(center);
-    
+
   //           hearts.push({
   //             mX: {
   //               min: min.x,
@@ -244,7 +244,11 @@ function App() {
         // worldPosition.z = worldPosition.z - size1.z/2;
 
         child.userData.position = worldPosition;
-        const point = new THREE.Vector3(worldPosition.x + size1.x/2, worldPosition.y + size1.y/2, worldPosition.z - size1.z/2);
+        const point = new THREE.Vector3(
+          worldPosition.x + size1.x / 2,
+          worldPosition.y + size1.y / 2,
+          worldPosition.z - size1.z / 2
+        );
         child.userData.positionCenter = point;
         // child.position.copy(worldPosition);
 
@@ -464,7 +468,8 @@ function App() {
           const sizeA = setSizeGLB(minDistanceA.mesh);
 
           const scaleY = Math.abs(
-            minDistanceD.mesh.userData.position.z - minDistanceA.mesh.userData.position.z
+            minDistanceD.mesh.userData.position.z -
+              minDistanceA.mesh.userData.position.z
           );
           const originalSize = setSizeGLB(previewModelRef.current);
           const originalScale = previewModelRef.current.scale.clone();
@@ -648,7 +653,8 @@ function App() {
           const sizeA = setSizeGLB(minDistanceA.mesh);
 
           const scaleZ = Math.abs(
-            minDistanceD.mesh.userData.position.y - minDistanceA.mesh.userData.position.y
+            minDistanceD.mesh.userData.position.y -
+              minDistanceA.mesh.userData.position.y
           );
           const originalSize = setSizeGLB(previewModelRef.current);
           const originalScale = previewModelRef.current.scale.clone();
@@ -830,44 +836,46 @@ function App() {
     (event) => {
       const canvas = document.getElementById('myThreeJsCanvas');
       const rect = canvas.getBoundingClientRect();
-  
+
       // Chuyển đổi tọa độ của con chuột sang tọa độ normalized device coordinates (NDC)
       mousePositionRef.current.x =
         ((event.clientX - rect.left) / rect.width) * 2 - 1;
       mousePositionRef.current.y =
         -((event.clientY - rect.top) / rect.height) * 2 + 1;
-  
+
       // Đặt raycaster từ vị trí camera và tọa độ của con chuột
       raycasterRef.current.setFromCamera(
         mousePositionRef.current,
         display.camera
       );
-  
+
       // Tìm các đối tượng bị giao cắt
       const intersects = raycasterRef.current.intersectObjects(
         cabinet.children,
         true
       );
-  
+
       if (intersects.length > 0) {
         const intersectedMesh = intersects[0].object; // Mesh được click đầu tiên
 
         const worldPosition = new THREE.Vector3();
         intersectedMesh.getWorldPosition(worldPosition);
-  
+
         // Lấy thông tin của mesh
         console.log('Mesh được click:', intersectedMesh);
         console.log('Tên của mesh:', intersectedMesh.name);
         console.log('Vị trí của mesh:', worldPosition);
-        console.log('Kích thước bounding box:', new THREE.Box3().setFromObject(intersectedMesh).getSize());
-  
+        console.log(
+          'Kích thước bounding box:',
+          new THREE.Box3().setFromObject(intersectedMesh).getSize()
+        );
+
         // Ví dụ: Gọi hàm findPoint với mesh được click
         findPoint(intersectedMesh);
       }
     },
     [display]
   );
-  
 
   const updatePreviewPosition = () => {
     raycasterRef.current.setFromCamera(
@@ -990,7 +998,8 @@ function App() {
         model.position.y = intersectionPoint.y;
         // model.children[0].position.copy(model.position);
         const scaleY = Math.abs(
-          minDistanceD.mesh.userData.position.z - minDistanceA.mesh.userData.position.z
+          minDistanceD.mesh.userData.position.z -
+            minDistanceA.mesh.userData.position.z
         );
         const originalSize = setSizeGLB(model);
         const originalScale = model.scale.clone();
@@ -1039,7 +1048,8 @@ function App() {
         model.position.y = minDistanceD.mesh.userData.position.y + sizeD.y;
         model.position.z = intersectionPoint.z;
         const scaleZ = Math.abs(
-          minDistanceD.mesh.userData.position.y - minDistanceA.mesh.userData.position.y
+          minDistanceD.mesh.userData.position.y -
+            minDistanceA.mesh.userData.position.y
         );
         const originalSize = setSizeGLB(model);
         const originalScale = model.scale.clone();
@@ -1099,21 +1109,16 @@ function App() {
 
         const sizeD = setSizeGLB(minDistanceD.mesh);
         const sizeA = setSizeGLB(minDistanceA.mesh);
-
-        const box = new THREE.Box3().setFromObject(model);
-        const size = new THREE.Vector3();
-        box.getSize(size);
-
-        const box1 = new THREE.Box3().setFromObject(minDistanceF.mesh);
-        const size1 = new THREE.Vector3();
-        box1.getSize(size1);
+        const sizeE = setSizeGLB(minDistanceE.mesh);
+        const sizeF = setSizeGLB(minDistanceF.mesh);
+        const sizeModel = setSizeGLB(model);
 
         model.position.x = Math.min(
           minDistanceD.mesh.userData.position.x,
           minDistanceA.mesh.userData.position.x
         );
-        model.position.z = minDistanceD.mesh.userData.position.z + size.z;
-        model.position.y = minDistanceF.mesh.userData.position.y + size1.y;
+        model.position.z = minDistanceD.mesh.userData.position.z + sizeModel.z;
+        model.position.y = minDistanceF.mesh.userData.position.y + sizeF.y;
         // model.children[0].position.copy(model.position);
         // const scaleY = Math.abs(
         //   minDistanceD.mesh.userData.position.z - minDistanceA.mesh.userData.position.z
@@ -1123,8 +1128,14 @@ function App() {
         // model.scale.z =
         //   ((scaleY - (sizeD.z / 2 + sizeA.z / 2)) * originalScale.z) /
         //   originalSize.z;
-        cabinet.add(model);
-        findPoint(cabinet);
+        if (
+          minDistanceA.mesh.userData.position.z - minDistanceD.mesh.userData.position.z + sizeA.z >
+            sizeModel.z &&
+          minDistanceE.mesh.userData.position.y - minDistanceF.mesh.userData.position.y - sizeF.y > sizeModel.y
+        ) {
+          cabinet.add(model);
+          findPoint(cabinet);
+        }
       });
     }
   };
