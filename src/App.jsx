@@ -54,7 +54,7 @@ function App() {
     {
       name: 'Xắn chữ L',
       image: '/assets/anh456.png',
-      model: '/assets/XANCHUL.glb',
+      model: '/assets/XANCHUL2.glb',
       type: 2,
     },
   ];
