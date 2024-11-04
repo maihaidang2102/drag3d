@@ -57,6 +57,12 @@ function App() {
       model: '/assets/XANCHUL2.glb',
       type: 2,
     },
+    {
+      name: 'Học tủ áo',
+      image: '/assets/123123.png',
+      model: '/assets/HOCTU777.glb',
+      type: 3,
+    },
   ];
 
   function setSizeGLB(scene) {
@@ -951,6 +957,103 @@ function App() {
     });
   };
 
+  const checkVariantExists = (meshStructure, S, X) => {
+    const parts = meshStructure.split("_");
+
+    const sPart = parts.find((part) => part.startsWith(`${S}-`));
+    if (!sPart) {
+      return false;
+    }
+
+    const variants = sPart.split("-")[1];
+    return variants && variants.includes(X);
+  }
+
+  const adjustScaleByVertical = (gltfScene , mesh) =>{
+    const size = setSizeGLB(mesh);
+    const minZ = mesh.position.z - size.z;
+    const maxZ = mesh.position.z;
+
+    let count = 0;
+    let measure = 0;
+    gltfScene?.traverse((child) => {
+      if (child.isMesh) {
+        const sizeChild = setSizeGLB(child);
+        let orientation;
+        if (sizeChild.y < sizeChild.x && sizeChild.y < sizeChild.z) {
+          orientation = 0; // Mesh ngang
+        } else {
+          if (sizeChild.x < sizeChild.y && sizeChild.x < sizeChild.z) {
+            orientation = 2; // mesh giống tấm hậu
+          } else {
+            orientation = 1; // Mesh dọc
+          }
+        }
+        if( orientation === 1 && (child.position.z < minZ || child.position.z > maxZ) ){
+          count++;
+          measure += sizeChild.z;
+        }
+      }
+    });
+
+    return { count, measure };
+  }
+
+  const scaleCabinetShelf = (gltfScene, sizeDefault , sizeScale , numMesh) =>{
+     gltfScene?.traverse((child) => {
+      if (child.isMesh) {
+        if(checkVariantExists(child.name, "S", "Z")){
+          const result = adjustScaleByVertical(gltfScene, child);
+          const scaleZ = (sizeScale - result.measure) / (sizeDefault.z - result.measure)
+          child.scale.z = scaleZ;
+        }  
+        
+      }
+    });
+     gltfScene?.traverse((child) => {
+      if (child.isMesh) {
+        if(checkVariantExists(child.name, "P", "Z")){
+          let scaleZ;
+          if(sizeDefault.z > sizeScale){
+            const temp = sizeScale/sizeDefault.z;
+            if(checkVariantExists(child.name, "S", "Y")){
+              scaleZ = temp + (temp*0.031 -0.031)
+            }else{
+              scaleZ = temp + (temp*0.014 -0.014)
+            }
+          }else{
+            scaleZ = sizeScale/sizeDefault.z + numMesh*0.017
+          }
+          child.position.z = child.position.z*scaleZ;
+        }   
+      }
+    });
+
+     
+  }
+
+  const setInfoModel = (gltfScene) =>{
+    let count = 0;
+    gltfScene?.traverse((child) => {
+      if (child.isMesh) {
+        const size = setSizeGLB(child);
+        let orientation;
+        if (size.y < size.x && size.y < size.z) {
+          orientation = 0; // Mesh ngang
+        } else {
+          if (size.x < size.y && size.x < size.z) {
+            orientation = 2; // mesh giống tấm hậu
+          } else {
+            orientation = 1; // Mesh dọc
+            count++;
+          }
+        }
+        child.userData.orientation = orientation;   
+      }
+    });
+    return count;
+  }
+
   const loadRealModel = (moduleData, intersectionPoint) => {
     const loader = new GLTFLoader();
     if (moduleData.type == 0) {
@@ -1136,6 +1239,69 @@ function App() {
           cabinet.add(model);
           findPoint(cabinet);
         }
+      });
+    } else if(moduleData.type == 3) {
+      loader.load(moduleData.model, (gltf) => {
+        let model = gltf.scene;
+        // gltf.scene?.traverse((child) => {
+        //   if (child.isMesh) {
+        //     model.push(child);
+        //   }
+        // });
+        let minDistanceD;
+        let minDistanceA;
+        hearts.forEach((point) => {
+          if (
+            intersectionPoint.y < point.mY.max &&
+            intersectionPoint.y > point.mY.min &&
+            point.orientation === 1
+          ) {
+            if (
+              intersectionPoint.z < point.mZ.org &&
+              (!minDistanceA || point.mZ.org < minDistanceA.mZ.org)
+            ) {
+              minDistanceA = point;
+            } else if (
+              intersectionPoint.z > point.mZ.org &&
+              (!minDistanceD || point.mZ.org > minDistanceD.mZ.org)
+            ) {
+              minDistanceD = point;
+            }
+          }
+        });
+
+        const sizeD = setSizeGLB(minDistanceD.mesh);
+        const sizeA = setSizeGLB(minDistanceA.mesh);
+
+        // model.position.copy(
+        //   getPoint(minDistanceA.mesh.userData.position, minDistanceD.mesh.userData.position)
+        // );
+
+        model.position.x = Math.min(
+          minDistanceD.mesh.userData.position.x,
+          minDistanceA.mesh.userData.position.x
+        );
+        model.position.z = minDistanceA.mesh.userData.position.z - sizeA.z;
+        model.position.y = intersectionPoint.y;
+        // model.children[0].position.copy(model.position);
+        const scaleY = Math.abs(
+          minDistanceD.mesh.userData.position.z -
+            minDistanceA.mesh.userData.position.z
+        );
+
+        const sizeZ = minDistanceA.mesh.position.z - minDistanceD.mesh.position.z - sizeA.z;
+
+        const originalSize = setSizeGLB(model);
+
+        const count = setInfoModel(model);
+        scaleCabinetShelf(model, originalSize , sizeZ,count);
+
+        // const originalScale = model.scale.clone();
+        // model.scale.z =
+        //   ((scaleY - (sizeD.z / 2 + sizeA.z / 2)) * originalScale.z) /
+        //   originalSize.z;
+        cabinet.add(model);
+        // findPoint(cabinet);
       });
     }
   };
