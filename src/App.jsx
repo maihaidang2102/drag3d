@@ -10,19 +10,26 @@ import Sidebar from './lib/Sidebar';
 let display;
 let planesToCheck;
 let planeyz;
+let cabinet;
+let door;
+let hearts = [];
+let boundingBoxes = [];
+let drawnObjects = [];
 
 function App() {
   const [sceneManager, setSceneManager] = useState(null);
   const [physicsWorld, setPhysicsWorld] = useState(null);
+  const [meshClick, setMeshClick] = useState(null);
+  const [inputValue, setInputValue] = useState('');
+  const [inputValue2, setInputValue2] = useState(1);
   const [meshCorners, setMeshCorners] = useState([]);
   const previewModelRef = useRef(null);
   const isDraggingRef = useRef(false);
   const draggedModuleRef = useRef(null);
   const mousePositionRef = useRef(new THREE.Vector2());
   const raycasterRef = useRef(new THREE.Raycaster());
+  const boxHelperRef = useRef(null);
 
-  let cabinet;
-  let hearts = [];
   let choice = 0;
   let line, textSprite;
   let line2, textSprite2;
@@ -63,6 +70,24 @@ function App() {
       model: '/assets/HOCTU777.glb',
       type: 3,
     },
+    {
+      name: 'Học chữ U',
+      image: '/assets/HOCCHUU123.png',
+      model: '/assets/hocchuu3.glb',
+      type: 4,
+    },
+    {
+      name: 'Xắn bo cong',
+      image: '/assets/xanbocong.png',
+      model: '/assets/xanbocong5.glb',
+      type: 5,
+    },
+    {
+      name: 'Cửa trơn',
+      image: '/assets/cuatron.png',
+      model: '/assets/CUATRON.glb',
+      type: 6,
+    },
   ];
 
   function setSizeGLB(scene) {
@@ -76,27 +101,13 @@ function App() {
     };
   }
 
-  function createTextSprite(message, parameters = {}) {
-    const {
-      fontface = 'Arial',
-      fontsize = 70,
-      color = { r: 0, g: 0, b: 255, a: 1.0 },
-    } = parameters;
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    context.font = fontsize + 'px ' + fontface;
-    const metrics = context.measureText(message);
-    const textWidth = metrics.width;
-    context.fillStyle = `rgba(${color.r},${color.g},${color.b},${color.a})`;
-    context.fillText(message, 0, fontsize);
-    const texture = new THREE.CanvasTexture(canvas);
-    const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-    const sprite = new THREE.Sprite(spriteMaterial);
-    sprite.scale.set(textWidth / 10, fontsize / 10, 1.0);
-    return sprite;
-  }
-
   const handleResetBox = () => {
+    console.log(hearts);
+    boundingBoxes.forEach((box) => {
+      display.scene.remove(box);
+    });
+    boundingBoxes.length = 0;
+
     hearts.forEach((item) => {
       const mesh = item.mesh;
       if (mesh) {
@@ -110,17 +121,13 @@ function App() {
         box.getCenter(center);
 
         const geometry = new THREE.BoxGeometry(size.x, size.y, size.z);
-
         const edges = new THREE.EdgesGeometry(geometry);
-
-        const randomColor = Math.random() * 0xffffff; // Màu ngẫu nhiên
         const material = new THREE.LineBasicMaterial({ color: 0x000000 });
-
         const boundingBoxEdges = new THREE.LineSegments(edges, material);
 
         boundingBoxEdges.position.copy(mesh.userData.positionCenter);
 
-        // listBox.push(boundingBoxEdges);
+        boundingBoxes.push(boundingBoxEdges);
 
         // Thêm khung vào scene
         display.scene.add(boundingBoxEdges);
@@ -128,98 +135,14 @@ function App() {
     });
   };
 
-  // function findPoint(mesh) {
-  //   hearts = [];
-  //   mesh?.traverse((child) => {
-  //     if (child.isMesh) {
-  //       const size = setSizeGLB(child);
-  //       let orientation;
-  //       if (size.y < size.x && size.y < size.z) {
-  //         orientation = 0; // Mesh ngang
-  //       } else {
-  //         if (size.x < size.y && size.x < size.z) {
-  //           orientation = 2; //
-  //         } else {
-  //           orientation = 1; // Mesh dọc
-  //         }
-  //       }
-
-  //       const box = new THREE.Box3().setFromObject(child);
-  //       const min = box.min;
-  //       const max = box.max;
-  //       const center = new THREE.Vector3();
-  //       box.getCenter(center);
-
-  //       hearts.push({
-  //         mX: {
-  //           min: min.x,
-  //           org: center.x, // Giá trị trung tâm theo trục X
-  //           max: max.x,
-  //         },
-  //         mZ: {
-  //           min: min.z,
-  //           org: center.z, // Giá trị trung tâm theo trục Z
-  //           max: max.z,
-  //         },
-  //         mY: {
-  //           min: min.y,
-  //           org: center.y, // Giá trị trung tâm theo trục Y
-  //           max: max.y,
-  //         },
-  //         mesh: child,
-  //         orientation: orientation,
-  //       });
-  //     }else if(child.isGroup){
-  //       child?.traverse((children) => {
-  //         if (children.isMesh) {
-  //           const size = setSizeGLB(children);
-  //           let orientation;
-  //           if (size.y < size.x && size.y < size.z) {
-  //             orientation = 0; // Mesh ngang
-  //           } else {
-  //             if (size.x < size.y && size.x < size.z) {
-  //               orientation = 2; //
-  //             } else {
-  //               orientation = 1; // Mesh dọc
-  //             }
-  //           }
-
-  //           const box = new THREE.Box3().setFromObject(children);
-  //           const min = box.min;
-  //           const max = box.max;
-  //           const center = new THREE.Vector3();
-  //           box.getCenter(center);
-
-  //           hearts.push({
-  //             mX: {
-  //               min: min.x,
-  //               org: center.x, // Giá trị trung tâm theo trục X
-  //               max: max.x,
-  //             },
-  //             mZ: {
-  //               min: min.z,
-  //               org: center.z, // Giá trị trung tâm theo trục Z
-  //               max: max.z,
-  //             },
-  //             mY: {
-  //               min: min.y,
-  //               org: center.y, // Giá trị trung tâm theo trục Y
-  //               max: max.y,
-  //             },
-  //             mesh: children,
-  //             orientation: orientation,
-  //           });
-  //         }
-  //       });
-  //     }
-  //   });
-  //   handleResetBox();
-  // }
-
   function findPoint(mesh) {
     hearts = [];
     mesh?.traverse((child) => {
-      if (child.isMesh) {
+      if (
+        child.isMesh &&
+        child.parent.userData.type !== 3 &&
+        child.parent.userData.type !== 5
+      ) {
         const size = setSizeGLB(child);
         let orientation;
         if (size.y < size.x && size.y < size.z) {
@@ -245,9 +168,64 @@ function App() {
         const size1 = new THREE.Vector3();
         box1.getSize(size1);
 
-        // worldPosition.x = worldPosition.x + size1.x/2;
-        // worldPosition.y = worldPosition.y + size1.y/2;
-        // worldPosition.z = worldPosition.z - size1.z/2;
+        child.userData.position = worldPosition;
+        const point = new THREE.Vector3(
+          worldPosition.x + size1.x / 2,
+          worldPosition.y + size1.y / 2,
+          worldPosition.z - size1.z / 2
+        );
+        child.userData.positionCenter = point;
+
+        hearts.push({
+          mX: {
+            min: min.x,
+            org: center.x,
+            max: max.x,
+          },
+          mZ: {
+            min: min.z,
+            org: center.z,
+            max: max.z,
+          },
+          mY: {
+            min: min.y,
+            org: center.y,
+            max: max.y,
+          },
+          mesh: child,
+          orientation: orientation,
+        });
+      }
+    });
+    mesh?.traverse((child) => {
+      if (
+        child.isGroup &&
+        (child.userData.type == 3 || child.userData.type == 5)
+      ) {
+        const size = setSizeGLB(child);
+        let orientation;
+        if (size.y < size.x && size.y < size.z) {
+          orientation = 0; // Mesh ngang
+        } else {
+          if (size.x < size.y && size.x < size.z) {
+            orientation = 2; //
+          } else {
+            orientation = 1; // Mesh dọc
+          }
+        }
+
+        const worldPosition = new THREE.Vector3();
+        child.getWorldPosition(worldPosition);
+
+        const box = new THREE.Box3().setFromObject(child);
+        const min = box.min;
+        const max = box.max;
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+
+        const box1 = new THREE.Box3().setFromObject(child);
+        const size1 = new THREE.Vector3();
+        box1.getSize(size1);
 
         child.userData.position = worldPosition;
         const point = new THREE.Vector3(
@@ -256,41 +234,21 @@ function App() {
           worldPosition.z - size1.z / 2
         );
         child.userData.positionCenter = point;
-        // child.position.copy(worldPosition);
 
-        // hearts.push({
-        //   mX: {
-        //     min: worldPosition.x - size1.x/2,
-        //     org: worldPosition.x,
-        //     max: worldPosition.x + size1.x/2,
-        //   },
-        //   mZ: {
-        //     min: worldPosition.z - size1.z/2,
-        //     org: worldPosition.z,
-        //     max: worldPosition.z + size1.z/2,
-        //   },
-        //   mY: {
-        //     min: worldPosition.y - size1.y/2,
-        //     org: worldPosition.y,
-        //     max: worldPosition.y + size1.y/2,
-        //   },
-        //   mesh: child,
-        //   orientation: orientation,
-        // });
         hearts.push({
           mX: {
             min: min.x,
-            org: center.x, // Giá trị trung tâm theo trục X
+            org: center.x,
             max: max.x,
           },
           mZ: {
             min: min.z,
-            org: center.z, // Giá trị trung tâm theo trục Z
+            org: center.z,
             max: max.z,
           },
           mY: {
             min: min.y,
-            org: center.y, // Giá trị trung tâm theo trục Y
+            org: center.y,
             max: max.y,
           },
           mesh: child,
@@ -299,6 +257,27 @@ function App() {
       }
     });
     handleResetBox();
+  }
+
+  function createTextTexture(text, color) {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    const fontSize = 26;
+    canvas.width = 512;
+    canvas.height = 256;
+
+    // Set a prettier font style and alignment
+    context.font = `bold ${fontSize}px Arial`;
+    context.fillStyle = color;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+
+    context.lineWidth = 1;
+    context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    const texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+    return texture;
   }
 
   useEffect(() => {
@@ -395,34 +374,18 @@ function App() {
     };
   }, []);
 
-  function createTextTexture(text, color) {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    const fontSize = 26;
-    canvas.width = 512;
-    canvas.height = 256;
+  function addObjectToScene(object) {
+    display.scene.add(object);
+    drawnObjects.push(object);
+  }
 
-    // Set a prettier font style and alignment
-    context.font = `bold ${fontSize}px Arial`;
-    context.fillStyle = color;
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-
-    // // Add a shadow for better visibility
-    // context.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    // context.shadowOffsetX = 3;
-    // context.shadowOffsetY = 3;
-    // context.shadowBlur = 4;
-
-    // Add text with border
-    context.lineWidth = 1;
-    // context.strokeStyle = 'white';
-    // context.strokeText(text, canvas.width / 2, canvas.height / 2);
-    context.fillText(text, canvas.width / 2, canvas.height / 2);
-
-    const texture = new THREE.Texture(canvas);
-    texture.needsUpdate = true;
-    return texture;
+  function clearDrawnObjects() {
+    drawnObjects.forEach((object) => {
+      display.scene.remove(object);
+      object.geometry?.dispose();
+      object.material?.dispose();
+    });
+    drawnObjects.length = 0;
   }
 
   const handleMouseMove = useCallback((event) => {
@@ -447,27 +410,8 @@ function App() {
 
     if (isDraggingRef.current && previewModelRef.current) {
       if (previewModelRef.current.userData.type == 0) {
-        let minDistanceD;
-        let minDistanceA;
-        hearts.forEach((point) => {
-          if (
-            intersectionPoint.y < point.mY.max &&
-            intersectionPoint.y > point.mY.min &&
-            point.orientation === 1
-          ) {
-            if (
-              intersectionPoint.z < point.mZ.org &&
-              (!minDistanceA || point.mZ.org < minDistanceA.mZ.org)
-            ) {
-              minDistanceA = point;
-            } else if (
-              intersectionPoint.z > point.mZ.org &&
-              (!minDistanceD || point.mZ.org > minDistanceD.mZ.org)
-            ) {
-              minDistanceD = point;
-            }
-          }
-        });
+        const { minDistanceD, minDistanceA } =
+          findClosestZEdges(intersectionPoint);
 
         if (minDistanceD && minDistanceA) {
           const sizeD = setSizeGLB(minDistanceD.mesh);
@@ -486,39 +430,12 @@ function App() {
 
           /// line
 
-          let minDistanceE;
-          let minDistanceF;
-          hearts.forEach((point) => {
-            if (
-              intersectionPoint.z < point.mZ.max &&
-              intersectionPoint.z > point.mZ.min &&
-              point.orientation === 0
-            ) {
-              if (
-                intersectionPoint.y < point.mY.org &&
-                (!minDistanceE || point.mY.org < minDistanceE.mY.org)
-              ) {
-                minDistanceE = point;
-              } else if (
-                intersectionPoint.y > point.mY.org &&
-                (!minDistanceF || point.mY.org > minDistanceF.mY.org)
-              ) {
-                minDistanceF = point;
-              }
-            }
-          });
+          const { minDistanceA: minDistanceE, minDistanceD: minDistanceF } =
+            findClosestYEdges(intersectionPoint);
 
-          const box = new THREE.Box3().setFromObject(minDistanceE.mesh);
-          const size = new THREE.Vector3();
-          box.getSize(size);
-
-          const box1 = new THREE.Box3().setFromObject(previewModelRef.current);
-          const size1 = new THREE.Vector3();
-          box1.getSize(size1);
-
-          const box2 = new THREE.Box3().setFromObject(minDistanceF.mesh);
-          const size2 = new THREE.Vector3();
-          box2.getSize(size2);
+          const size = setSizeGLB(minDistanceE.mesh);
+          const size1 = setSizeGLB(previewModelRef.current);
+          const size2 = setSizeGLB(minDistanceF.mesh);
 
           /// giữa - trên
 
@@ -541,7 +458,7 @@ function App() {
               endPoint,
             ]);
             line = new THREE.Line(lineGeometry, lineMaterial);
-            display.scene.add(line);
+            addObjectToScene(line);
           } else {
             const points = [startPoint, endPoint];
             line.geometry.setFromPoints(points);
@@ -564,7 +481,7 @@ function App() {
               transparent: true,
             });
             textSprite = new THREE.Sprite(textMaterial);
-            display.scene.add(textSprite);
+            addObjectToScene(textSprite);
           } else {
             textSprite.material.map = createTextTexture(
               caculatePosition,
@@ -597,7 +514,7 @@ function App() {
               endPoint,
             ]);
             line2 = new THREE.Line(lineGeometry, lineMaterial);
-            display.scene.add(line2);
+            addObjectToScene(line2);
           } else {
             const points = [startPoint1, endPoint1];
             line2.geometry.setFromPoints(points);
@@ -616,7 +533,7 @@ function App() {
               transparent: true,
             });
             textSprite2 = new THREE.Sprite(textMaterial);
-            display.scene.add(textSprite2);
+            addObjectToScene(textSprite2);
           } else {
             textSprite2.material.map = createTextTexture(
               caculatePosition1,
@@ -632,27 +549,8 @@ function App() {
           /// line
         }
       } else if (previewModelRef.current.userData.type == 1) {
-        let minDistanceD;
-        let minDistanceA;
-        hearts.forEach((point) => {
-          if (
-            intersectionPoint.z < point.mZ.max &&
-            intersectionPoint.z > point.mZ.min &&
-            point.orientation === 0
-          ) {
-            if (
-              intersectionPoint.y < point.mY.org &&
-              (!minDistanceA || point.mY.org < minDistanceA.mY.org)
-            ) {
-              minDistanceA = point;
-            } else if (
-              intersectionPoint.y > point.mY.org &&
-              (!minDistanceD || point.mY.org > minDistanceD.mY.org)
-            ) {
-              minDistanceD = point;
-            }
-          }
-        });
+        const { minDistanceD, minDistanceA } =
+          findClosestYEdges(intersectionPoint);
 
         if (minDistanceD && minDistanceA) {
           const sizeD = setSizeGLB(minDistanceD.mesh);
@@ -672,39 +570,12 @@ function App() {
 
           /// line
 
-          let minDistanceE;
-          let minDistanceF;
-          hearts.forEach((point) => {
-            if (
-              intersectionPoint.y < point.mY.max &&
-              intersectionPoint.y > point.mY.min &&
-              point.orientation === 1
-            ) {
-              if (
-                intersectionPoint.z < point.mZ.org &&
-                (!minDistanceE || point.mZ.org < minDistanceE.mZ.org)
-              ) {
-                minDistanceE = point;
-              } else if (
-                intersectionPoint.z > point.mZ.org &&
-                (!minDistanceF || point.mZ.org > minDistanceF.mZ.org)
-              ) {
-                minDistanceF = point;
-              }
-            }
-          });
+          const { minDistanceA: minDistanceE, minDistanceD: minDistanceF } =
+            findClosestZEdges(intersectionPoint);
 
-          const box = new THREE.Box3().setFromObject(minDistanceE.mesh);
-          const size = new THREE.Vector3();
-          box.getSize(size);
-
-          const box1 = new THREE.Box3().setFromObject(previewModelRef.current);
-          const size1 = new THREE.Vector3();
-          box1.getSize(size1);
-
-          const box2 = new THREE.Box3().setFromObject(minDistanceF.mesh);
-          const size2 = new THREE.Vector3();
-          box2.getSize(size2);
+          const size = setSizeGLB(minDistanceE.mesh);
+          const size1 = setSizeGLB(previewModelRef.current);
+          const size2 = setSizeGLB(minDistanceF.mesh);
 
           /// giữa - trái
 
@@ -727,7 +598,7 @@ function App() {
               endPoint,
             ]);
             line = new THREE.Line(lineGeometry, lineMaterial);
-            display.scene.add(line);
+            addObjectToScene(line);
           } else {
             const points = [startPoint, endPoint];
             line.geometry.setFromPoints(points);
@@ -750,7 +621,7 @@ function App() {
               transparent: true,
             });
             textSprite = new THREE.Sprite(textMaterial);
-            display.scene.add(textSprite);
+            addObjectToScene(textSprite);
           } else {
             textSprite.material.map = createTextTexture(
               caculatePosition,
@@ -783,7 +654,7 @@ function App() {
               endPoint,
             ]);
             line2 = new THREE.Line(lineGeometry, lineMaterial);
-            display.scene.add(line2);
+            addObjectToScene(line2);
           } else {
             const points = [startPoint1, endPoint1];
             line2.geometry.setFromPoints(points);
@@ -802,7 +673,7 @@ function App() {
               transparent: true,
             });
             textSprite2 = new THREE.Sprite(textMaterial);
-            display.scene.add(textSprite2);
+            addObjectToScene(textSprite2);
           } else {
             textSprite2.material.map = createTextTexture(
               caculatePosition1,
@@ -820,9 +691,6 @@ function App() {
       } else if (previewModelRef.current.userData.type == 2) {
         console.log('123');
       }
-
-      // const randomScale = Math.random() * 3 + 1; // Tỷ lệ ngẫu nhiên từ 1 đến 4
-      // previewModelRef.current.scale.set(randomScale, randomScale, randomScale);
     }
   }, []);
 
@@ -862,22 +730,88 @@ function App() {
       );
 
       if (intersects.length > 0) {
+        let meshClicked = null;
+        clearDrawnObjects();
+
         const intersectedMesh = intersects[0].object; // Mesh được click đầu tiên
+
+        if (boxHelperRef.current) {
+          display.scene.remove(boxHelperRef.current); // Xóa box cũ khỏi cảnh
+          boxHelperRef.current = null; // Đặt lại ref
+        }
 
         const worldPosition = new THREE.Vector3();
         intersectedMesh.getWorldPosition(worldPosition);
 
-        // Lấy thông tin của mesh
         console.log('Mesh được click:', intersectedMesh);
-        console.log('Tên của mesh:', intersectedMesh.name);
-        console.log('Vị trí của mesh:', worldPosition);
-        console.log(
-          'Kích thước bounding box:',
-          new THREE.Box3().setFromObject(intersectedMesh).getSize()
-        );
 
-        // Ví dụ: Gọi hàm findPoint với mesh được click
-        findPoint(intersectedMesh);
+        if (
+          intersectedMesh.userData.type == 5 ||
+          intersectedMesh.userData.type == 3
+        ) {
+          console.log(cabinet);
+          cabinet.children.forEach((item) => {
+            if (item.uuid === intersectedMesh.userData.parentGltf) {
+              setMeshClick(item);
+              meshClicked = item;
+              const sizeMesh = setSizeGLB(item);
+              console.log(item);
+              console.log(sizeMesh);
+              setInputValue(sizeMesh.y.toFixed(3) * 1000);
+            }
+          });
+        } else {
+          meshClicked = intersectedMesh;
+          setMeshClick(intersectedMesh);
+        }
+
+        if (meshClicked.userData.type !== undefined) {
+          const boundingBox = new THREE.Box3().setFromObject(meshClicked);
+          const center = new THREE.Vector3();
+          boundingBox.getCenter(center);
+
+          const { minDistanceD, minDistanceA } = findClosestZEdges(center);
+          const { minDistanceA: minDistanceE, minDistanceD: minDistanceF } =
+            findClosestYEdges(center);
+
+          const sizeD = setSizeGLB(minDistanceD.mesh);
+          const sizeA = setSizeGLB(minDistanceA.mesh);
+          const sizeE = setSizeGLB(minDistanceE.mesh);
+          const sizeF = setSizeGLB(minDistanceF.mesh);
+
+         
+
+          const offsetX = Math.max(
+            minDistanceD.mesh.userData.position.x + sizeD.x,
+            minDistanceA.mesh.userData.position.x + sizeA.x,
+            minDistanceE.mesh.userData.position.x + sizeE.x,
+            minDistanceF.mesh.userData.position.x + sizeF.x
+          );
+
+          const offsetZ = minDistanceA.mesh.userData.position.z+((minDistanceD.mesh.userData.position.z - minDistanceA.mesh.userData.position.z - sizeA.z)/2);
+          const offsetY = minDistanceF.mesh.userData.position.y +(( minDistanceE.mesh.userData.position.y - minDistanceF.mesh.userData.position.y + sizeF.y)/2);
+
+          const width = offsetX + 0.02;
+          const height = minDistanceE.mesh.userData.position.y - minDistanceF.mesh.userData.position.y - sizeF.y; 
+          const depth = minDistanceA.mesh.userData.position.z - minDistanceD.mesh.userData.position.z - sizeA.z;
+
+          const geometry = new THREE.BoxGeometry(width, height, depth); 
+          const material = new THREE.MeshStandardMaterial({
+            color: 0x00BFFF, // Màu sắc
+            metalness: 0.5, // Chất liệu kim loại
+            roughness: 0.5, // Độ nhám
+            transparent: true,  
+            opacity : 0.5
+          });
+
+          // Tạo Mesh từ geometry và material
+          const box = new THREE.Mesh(geometry, material);
+
+          // Đặt vị trí cho khối hộp
+          box.position.set(offsetX/2, offsetY, offsetZ);
+          display.scene.add(box);
+          boxHelperRef.current = box;
+        }
       }
     },
     [display]
@@ -928,7 +862,11 @@ function App() {
       const intersectionPoint = intersects[0].point;
 
       display.scene.remove(previewModelRef.current);
-      loadRealModel(draggedModuleRef.current, intersectionPoint);
+      if (draggedModuleRef.current.type === 6) {
+        loadRealModelDoor(draggedModuleRef.current, intersectionPoint);
+      } else {
+        loadRealModel(draggedModuleRef.current, intersectionPoint);
+      }
 
       previewModelRef.current = null;
       draggedModuleRef.current = null;
@@ -957,19 +895,125 @@ function App() {
     });
   };
 
+  const findClosestZEdges = (intersectionPoint) => {
+    let minDistanceD;
+    let minDistanceA;
+
+    hearts.forEach((point) => {
+      if (
+        intersectionPoint.y < point.mY.max &&
+        intersectionPoint.y > point.mY.min &&
+        point.orientation === 1
+      ) {
+        if (
+          intersectionPoint.z < point.mZ.org &&
+          (!minDistanceA || point.mZ.org < minDistanceA.mZ.org)
+        ) {
+          minDistanceA = point;
+        } else if (
+          intersectionPoint.z > point.mZ.org &&
+          (!minDistanceD || point.mZ.org > minDistanceD.mZ.org)
+        ) {
+          minDistanceD = point;
+        }
+      }
+    });
+
+    return { minDistanceD, minDistanceA };
+  };
+
+  const findClosestYEdges = (intersectionPoint) => {
+    let minDistanceD;
+    let minDistanceA;
+
+    hearts.forEach((point) => {
+      if (
+        intersectionPoint.z < point.mZ.max &&
+        intersectionPoint.z > point.mZ.min &&
+        point.orientation === 0
+      ) {
+        if (
+          intersectionPoint.y < point.mY.org &&
+          (!minDistanceA || point.mY.org < minDistanceA.mY.org)
+        ) {
+          minDistanceA = point;
+        } else if (
+          intersectionPoint.y > point.mY.org &&
+          (!minDistanceD || point.mY.org > minDistanceD.mY.org)
+        ) {
+          minDistanceD = point;
+        }
+      }
+    });
+
+    return { minDistanceD, minDistanceA };
+  };
+
+  const loadRealModelDoor = (moduleData, intersectionPoint) => {
+    const loader = new GLTFLoader();
+    if (moduleData.type == 6) {
+      loader.load(moduleData.model, (gltf) => {
+        let model;
+        gltf.scene?.traverse((child) => {
+          if (child.isMesh) {
+            model = child;
+          }
+        });
+        const { minDistanceD, minDistanceA } =
+          findClosestZEdges(intersectionPoint);
+        const { minDistanceA: minDistanceE, minDistanceD: minDistanceF } =
+          findClosestYEdges(intersectionPoint);
+
+        const sizeD = setSizeGLB(minDistanceD.mesh);
+        const sizeA = setSizeGLB(minDistanceA.mesh);
+        const sizeE = setSizeGLB(minDistanceE.mesh);
+        const sizeF = setSizeGLB(minDistanceF.mesh);
+
+        model.position.x = Math.max(
+          minDistanceD.mesh.userData.position.x + sizeD.x,
+          minDistanceA.mesh.userData.position.x + sizeA.x,
+          minDistanceE.mesh.userData.position.x + sizeE.x,
+          minDistanceF.mesh.userData.position.x + sizeF.x
+        );
+        model.position.z = Math.max(
+          minDistanceD.mesh.userData.position.z,
+          minDistanceA.mesh.userData.position.z
+        );
+        model.position.y = Math.min(
+          minDistanceE.mesh.userData.position.y,
+          minDistanceF.mesh.userData.position.y
+        );
+
+        const originalSize = setSizeGLB(model);
+        const originalScale = model.scale.clone();
+        const sizeY =
+          minDistanceE.mesh.position.y - minDistanceF.mesh.position.y + sizeE.y;
+        const sizeZ =
+          minDistanceA.mesh.position.z - minDistanceD.mesh.position.z + sizeD.z;
+        const scaleY = sizeY / originalSize.y;
+        const scaleZ = sizeZ / originalSize.z;
+        model.scale.y = scaleY;
+        model.scale.z = scaleZ;
+        display.scene.add(model);
+        // findPoint(cabinet);
+      });
+    }
+  };
+
+  // #region CODE CUA DANG
   const checkVariantExists = (meshStructure, S, X) => {
-    const parts = meshStructure.split("_");
+    const parts = meshStructure.split('_');
 
     const sPart = parts.find((part) => part.startsWith(`${S}-`));
     if (!sPart) {
       return false;
     }
 
-    const variants = sPart.split("-")[1];
+    const variants = sPart.split('-')[1];
     return variants && variants.includes(X);
-  }
+  };
 
-  const adjustScaleByVertical = (gltfScene , mesh) =>{
+  const adjustScaleByVertical = (gltfScene, mesh) => {
     const size = setSizeGLB(mesh);
     const minZ = mesh.position.z - size.z;
     const maxZ = mesh.position.z;
@@ -989,7 +1033,10 @@ function App() {
             orientation = 1; // Mesh dọc
           }
         }
-        if( orientation === 1 && (child.position.z < minZ || child.position.z > maxZ) ){
+        if (
+          orientation === 1 &&
+          (child.position.z < minZ || child.position.z > maxZ)
+        ) {
           count++;
           measure += sizeChild.z;
         }
@@ -997,42 +1044,78 @@ function App() {
     });
 
     return { count, measure };
-  }
+  };
 
-  const scaleCabinetShelf = (gltfScene, sizeDefault , sizeScale , numMesh) =>{
-     gltfScene?.traverse((child) => {
+  const scaleCabinetShelf = (gltfScene, sizeDefault, sizeScale, numMesh) => {
+    gltfScene?.traverse((child) => {
       if (child.isMesh) {
-        if(checkVariantExists(child.name, "S", "Z")){
+        if (checkVariantExists(child.name, 'S', 'Z')) {
           const result = adjustScaleByVertical(gltfScene, child);
-          const scaleZ = (sizeScale - result.measure) / (sizeDefault.z - result.measure)
+          const scaleZ =
+            (sizeScale - result.measure) / (sizeDefault.z - result.measure);
           child.scale.z = scaleZ;
-        }  
-        
+        }
       }
     });
-     gltfScene?.traverse((child) => {
+    gltfScene?.traverse((child) => {
       if (child.isMesh) {
-        if(checkVariantExists(child.name, "P", "Z")){
+        if (checkVariantExists(child.name, 'P', 'Z')) {
           let scaleZ;
-          if(sizeDefault.z > sizeScale){
-            const temp = sizeScale/sizeDefault.z;
-            if(checkVariantExists(child.name, "S", "Y")){
-              scaleZ = temp + (temp*0.031 -0.031)
-            }else{
-              scaleZ = temp + (temp*0.014 -0.014)
+          if (sizeDefault.z > sizeScale) {
+            const temp = sizeScale / sizeDefault.z;
+            if (checkVariantExists(child.name, 'S', 'Y')) {
+              scaleZ = temp + (temp * 0.031 - 0.031);
+            } else {
+              scaleZ = temp + (temp * 0.014 - 0.014);
             }
-          }else{
-            scaleZ = sizeScale/sizeDefault.z + numMesh*0.017
+          } else {
+            const temp = sizeScale / sizeDefault.z;
+            if (checkVariantExists(child.name, 'S', 'Y')) {
+              scaleZ = temp - (temp * 0.031 - 0.031);
+            } else {
+              scaleZ = temp - (temp * 0.014 - 0.014);
+            }
           }
-          child.position.z = child.position.z*scaleZ;
-        }   
+          child.position.z = child.position.z * scaleZ;
+        }
       }
     });
+  };
+  const scaleCabinetShelfU = (gltfScene, sizeDefault, sizeScale, numMesh) => {
+    gltfScene?.traverse((child) => {
+      if (child.isMesh) {
+        if (checkVariantExists(child.name, 'S', 'Z')) {
+          const scaleZ = sizeScale / sizeDefault.z;
+          child.scale.z = scaleZ;
+        }
+      }
+    });
+    gltfScene?.traverse((child) => {
+      if (child.isMesh) {
+        if (checkVariantExists(child.name, 'P', 'Z')) {
+          let scaleZ;
+          if (sizeDefault.z > sizeScale) {
+            const temp = sizeScale / sizeDefault.z;
+            if (checkVariantExists(child.name, 'S', 'X')) {
+              scaleZ = temp + (temp * 0.065 - 0.065);
+            } else {
+              scaleZ = temp + (temp * 0.048 - 0.048);
+            }
+          } else {
+            const temp = sizeScale / sizeDefault.z;
+            if (checkVariantExists(child.name, 'S', 'X')) {
+              scaleZ = temp - (temp * 0.065 - 0.065);
+            } else {
+              scaleZ = temp - (temp * 0.048 - 0.048);
+            }
+          }
+          child.position.z = child.position.z * scaleZ;
+        }
+      }
+    });
+  };
 
-     
-  }
-
-  const setInfoModel = (gltfScene) =>{
+  const setInfoModel = (gltfScene) => {
     let count = 0;
     gltfScene?.traverse((child) => {
       if (child.isMesh) {
@@ -1048,11 +1131,24 @@ function App() {
             count++;
           }
         }
-        child.userData.orientation = orientation;   
+        child.userData.orientation = orientation;
       }
     });
     return count;
-  }
+  };
+
+  const setInfoModelChild = (gltfScene) => {
+    gltfScene?.traverse((child) => {
+      if (child.isMesh) {
+        child.userData.type = gltfScene.userData.type;
+        child.userData.parentGltf = gltfScene.uuid;
+        const size = setSizeGLB(child);
+        child.userData.sizeDefault = size;
+      }
+    });
+    const size = setSizeGLB(gltfScene);
+    gltfScene.userData.sizeDefault = size;
+  };
 
   const loadRealModel = (moduleData, intersectionPoint) => {
     const loader = new GLTFLoader();
@@ -1064,42 +1160,17 @@ function App() {
             model = child;
           }
         });
-        let minDistanceD;
-        let minDistanceA;
-        hearts.forEach((point) => {
-          if (
-            intersectionPoint.y < point.mY.max &&
-            intersectionPoint.y > point.mY.min &&
-            point.orientation === 1
-          ) {
-            if (
-              intersectionPoint.z < point.mZ.org &&
-              (!minDistanceA || point.mZ.org < minDistanceA.mZ.org)
-            ) {
-              minDistanceA = point;
-            } else if (
-              intersectionPoint.z > point.mZ.org &&
-              (!minDistanceD || point.mZ.org > minDistanceD.mZ.org)
-            ) {
-              minDistanceD = point;
-            }
-          }
-        });
+        const { minDistanceD, minDistanceA } =
+          findClosestZEdges(intersectionPoint);
 
         const sizeD = setSizeGLB(minDistanceD.mesh);
         const sizeA = setSizeGLB(minDistanceA.mesh);
-
-        // model.position.copy(
-        //   getPoint(minDistanceA.mesh.userData.position, minDistanceD.mesh.userData.position)
-        // );
-
         model.position.x = Math.min(
           minDistanceD.mesh.userData.position.x,
           minDistanceA.mesh.userData.position.x
         );
         model.position.z = minDistanceA.mesh.userData.position.z - sizeA.z;
         model.position.y = intersectionPoint.y;
-        // model.children[0].position.copy(model.position);
         const scaleY = Math.abs(
           minDistanceD.mesh.userData.position.z -
             minDistanceA.mesh.userData.position.z
@@ -1110,6 +1181,8 @@ function App() {
           ((scaleY - (sizeD.z / 2 + sizeA.z / 2)) * originalScale.z) /
           originalSize.z;
         cabinet.add(model);
+        model.userData.type = moduleData.type;
+        setInfoModelChild(model);
         findPoint(cabinet);
       });
     } else if (moduleData.type == 1) {
@@ -1120,27 +1193,9 @@ function App() {
             model = child;
           }
         });
-        let minDistanceD;
-        let minDistanceA;
-        hearts.forEach((point) => {
-          if (
-            intersectionPoint.z < point.mZ.max &&
-            intersectionPoint.z > point.mZ.min &&
-            point.orientation === 0
-          ) {
-            if (
-              intersectionPoint.y < point.mY.org &&
-              (!minDistanceA || point.mY.org < minDistanceA.mY.org)
-            ) {
-              minDistanceA = point;
-            } else if (
-              intersectionPoint.y > point.mY.org &&
-              (!minDistanceD || point.mY.org > minDistanceD.mY.org)
-            ) {
-              minDistanceD = point;
-            }
-          }
-        });
+
+        const { minDistanceD, minDistanceA } =
+          findClosestYEdges(intersectionPoint);
 
         const sizeD = setSizeGLB(minDistanceD.mesh);
         const sizeA = setSizeGLB(minDistanceA.mesh);
@@ -1156,63 +1211,22 @@ function App() {
         );
         const originalSize = setSizeGLB(model);
         const originalScale = model.scale.clone();
-        model.scale.y =
-          ((scaleZ - (sizeD.y / 2 + sizeA.y / 2)) * originalScale.y) /
-          originalSize.y;
+        model.scale.y = ((scaleZ - sizeD.y) * originalScale.y) / originalSize.y;
         cabinet.add(model);
+        model.userData.type = moduleData.type;
+        setInfoModelChild(model);
         findPoint(cabinet);
       });
     } else if (moduleData.type == 2) {
       loader.load(moduleData.model, (gltf) => {
         const model = gltf.scene;
 
-        let minDistanceD;
-        let minDistanceA;
-        hearts.forEach((point) => {
-          if (
-            intersectionPoint.y < point.mY.max &&
-            intersectionPoint.y > point.mY.min &&
-            point.orientation === 1
-          ) {
-            if (
-              intersectionPoint.z < point.mZ.org &&
-              (!minDistanceA || point.mZ.org < minDistanceA.mZ.org)
-            ) {
-              minDistanceA = point;
-            } else if (
-              intersectionPoint.z > point.mZ.org &&
-              (!minDistanceD || point.mZ.org > minDistanceD.mZ.org)
-            ) {
-              minDistanceD = point;
-            }
-          }
-        });
+        const { minDistanceD, minDistanceA } =
+          findClosestZEdges(intersectionPoint);
+        const { minDistanceA: minDistanceE, minDistanceD: minDistanceF } =
+          findClosestYEdges(intersectionPoint);
 
-        let minDistanceE;
-        let minDistanceF;
-        hearts.forEach((point) => {
-          if (
-            intersectionPoint.z < point.mZ.max &&
-            intersectionPoint.z > point.mZ.min &&
-            point.orientation === 0
-          ) {
-            if (
-              intersectionPoint.y < point.mY.org &&
-              (!minDistanceE || point.mY.org < minDistanceE.mY.org)
-            ) {
-              minDistanceE = point;
-            } else if (
-              intersectionPoint.y > point.mY.org &&
-              (!minDistanceF || point.mY.org > minDistanceF.mY.org)
-            ) {
-              minDistanceF = point;
-            }
-          }
-        });
-
-        const sizeD = setSizeGLB(minDistanceD.mesh);
         const sizeA = setSizeGLB(minDistanceA.mesh);
-        const sizeE = setSizeGLB(minDistanceE.mesh);
         const sizeF = setSizeGLB(minDistanceF.mesh);
         const sizeModel = setSizeGLB(model);
 
@@ -1222,88 +1236,182 @@ function App() {
         );
         model.position.z = minDistanceD.mesh.userData.position.z + sizeModel.z;
         model.position.y = minDistanceF.mesh.userData.position.y + sizeF.y;
-        // model.children[0].position.copy(model.position);
-        // const scaleY = Math.abs(
-        //   minDistanceD.mesh.userData.position.z - minDistanceA.mesh.userData.position.z
-        // );
-        // const originalSize = setSizeGLB(model);
-        // const originalScale = model.scale.clone();
-        // model.scale.z =
-        //   ((scaleY - (sizeD.z / 2 + sizeA.z / 2)) * originalScale.z) /
-        //   originalSize.z;
         if (
-          minDistanceA.mesh.userData.position.z - minDistanceD.mesh.userData.position.z + sizeA.z >
+          minDistanceA.mesh.userData.position.z -
+            minDistanceD.mesh.userData.position.z +
+            sizeA.z >
             sizeModel.z &&
-          minDistanceE.mesh.userData.position.y - minDistanceF.mesh.userData.position.y - sizeF.y > sizeModel.y
+          minDistanceE.mesh.userData.position.y -
+            minDistanceF.mesh.userData.position.y -
+            sizeF.y >
+            sizeModel.y
         ) {
           cabinet.add(model);
           findPoint(cabinet);
         }
       });
-    } else if(moduleData.type == 3) {
+    } else if (moduleData.type == 3) {
       loader.load(moduleData.model, (gltf) => {
         let model = gltf.scene;
-        // gltf.scene?.traverse((child) => {
-        //   if (child.isMesh) {
-        //     model.push(child);
-        //   }
-        // });
-        let minDistanceD;
-        let minDistanceA;
-        hearts.forEach((point) => {
-          if (
-            intersectionPoint.y < point.mY.max &&
-            intersectionPoint.y > point.mY.min &&
-            point.orientation === 1
-          ) {
-            if (
-              intersectionPoint.z < point.mZ.org &&
-              (!minDistanceA || point.mZ.org < minDistanceA.mZ.org)
-            ) {
-              minDistanceA = point;
-            } else if (
-              intersectionPoint.z > point.mZ.org &&
-              (!minDistanceD || point.mZ.org > minDistanceD.mZ.org)
-            ) {
-              minDistanceD = point;
-            }
-          }
-        });
 
-        const sizeD = setSizeGLB(minDistanceD.mesh);
+        const { minDistanceD, minDistanceA } =
+          findClosestZEdges(intersectionPoint);
         const sizeA = setSizeGLB(minDistanceA.mesh);
-
-        // model.position.copy(
-        //   getPoint(minDistanceA.mesh.userData.position, minDistanceD.mesh.userData.position)
-        // );
-
         model.position.x = Math.min(
           minDistanceD.mesh.userData.position.x,
           minDistanceA.mesh.userData.position.x
         );
         model.position.z = minDistanceA.mesh.userData.position.z - sizeA.z;
         model.position.y = intersectionPoint.y;
-        // model.children[0].position.copy(model.position);
-        const scaleY = Math.abs(
-          minDistanceD.mesh.userData.position.z -
-            minDistanceA.mesh.userData.position.z
-        );
-
-        const sizeZ = minDistanceA.mesh.position.z - minDistanceD.mesh.position.z - sizeA.z;
+        const sizeZ =
+          minDistanceA.mesh.position.z - minDistanceD.mesh.position.z - sizeA.z;
 
         const originalSize = setSizeGLB(model);
 
         const count = setInfoModel(model);
-        scaleCabinetShelf(model, originalSize , sizeZ,count);
-
-        // const originalScale = model.scale.clone();
-        // model.scale.z =
-        //   ((scaleY - (sizeD.z / 2 + sizeA.z / 2)) * originalScale.z) /
-        //   originalSize.z;
+        scaleCabinetShelf(model, originalSize, sizeZ, count);
+        model.userData.type = moduleData.type;
+        setInfoModelChild(model);
         cabinet.add(model);
-        // findPoint(cabinet);
+        findPoint(cabinet);
+      });
+    } else if (moduleData.type == 4) {
+      loader.load(moduleData.model, (gltf) => {
+        let model = gltf.scene;
+        const { minDistanceD, minDistanceA } =
+          findClosestZEdges(intersectionPoint);
+
+        const { minDistanceA: minDistanceE, minDistanceD: minDistanceF } =
+          findClosestYEdges(intersectionPoint);
+
+        const sizeA = setSizeGLB(minDistanceA.mesh);
+        const sizeF = setSizeGLB(minDistanceF.mesh);
+
+        model.position.x = Math.min(
+          minDistanceD.mesh.userData.position.x,
+          minDistanceA.mesh.userData.position.x
+        );
+        model.position.z = minDistanceA.mesh.userData.position.z - sizeA.z;
+        model.position.y = minDistanceF.mesh.userData.position.y + sizeF.y;
+
+        const sizeZ =
+          minDistanceA.mesh.position.z - minDistanceD.mesh.position.z - sizeA.z;
+
+        const originalSize = setSizeGLB(model);
+
+        const count = setInfoModel(model);
+        scaleCabinetShelfU(model, originalSize, sizeZ, count);
+        model.userData.type = moduleData.type;
+        cabinet.add(model);
+        findPoint(cabinet);
+      });
+    } else if (moduleData.type == 5) {
+      loader.load(moduleData.model, (gltf) => {
+        let model = gltf.scene;
+        const { minDistanceD, minDistanceA } =
+          findClosestYEdges(intersectionPoint);
+
+        const sizeD = setSizeGLB(minDistanceD.mesh);
+        model.position.x = Math.min(
+          minDistanceD.mesh.userData.position.x,
+          minDistanceA.mesh.userData.position.x
+        );
+        model.position.y = minDistanceD.mesh.userData.position.y + sizeD.y;
+        model.position.z = intersectionPoint.z;
+        model.userData.type = moduleData.type;
+        setInfoModelChild(model);
+        cabinet.add(model);
+        findPoint(cabinet);
       });
     }
+  };
+  // #endregion
+
+  const handleDone = () => {
+    console.log(cabinet);
+    const sizeChange = inputValue / 1000;
+    const sizeParent = setSizeGLB(meshClick);
+    meshClick?.traverse((child) => {
+      if (child.isMesh) {
+        if (
+          !checkVariantExists(child.name, 'P', 'X') &&
+          !checkVariantExists(child.name, 'P', 'Y')
+        ) {
+          const size = setSizeGLB(child);
+          const delta = sizeParent.y - size.y;
+          const scale = (sizeChange - delta) / child.userData.sizeDefault.y;
+          child.scale.y = scale;
+        } else {
+          const delta = sizeChange - sizeParent.y;
+          child.position.y += delta;
+        }
+      }
+    });
+    const sizeParentAfter = setSizeGLB(meshClick);
+    console.log(sizeParentAfter);
+    findPoint(cabinet);
+  };
+
+  const handleDuplicate = () => {
+    if (
+      (meshClick.userData.type === 0 || meshClick.userData.type === 3) &&
+      inputValue2 !== 1
+    ) {
+      const boundingBox = new THREE.Box3().setFromObject(meshClick);
+      const center = new THREE.Vector3();
+      boundingBox.getCenter(center);
+      const { minDistanceD, minDistanceA } = findClosestYEdges(center);
+
+      const sizeD = setSizeGLB(minDistanceD.mesh);
+      const sizeMesh = setSizeGLB(meshClick);
+      const spaceY =
+        minDistanceA.mesh.position.y - minDistanceD.mesh.position.y + sizeD.y;
+      const numMeshs = Number(inputValue2);
+      const offsetY = (spaceY - sizeMesh.y * inputValue2) / (numMeshs + 1);
+      for (let i = 0; i < inputValue2; i++) {
+        if (i === 0) {
+          meshClick.position.y =
+            minDistanceD.mesh.position.y + sizeD.y + offsetY;
+        } else {
+          const clone = meshClick.clone();
+          const positionY =
+            minDistanceD.mesh.position.y +
+            sizeD.y +
+            offsetY * (i + 1) +
+            sizeMesh.y * i;
+          clone.position.y = positionY;
+          cabinet.add(clone);
+        }
+      }
+    } else if (meshClick.userData.type === 1 && inputValue2 !== 1) {
+      const boundingBox = new THREE.Box3().setFromObject(meshClick);
+      const center = new THREE.Vector3();
+      boundingBox.getCenter(center);
+      const { minDistanceD, minDistanceA } = findClosestZEdges(center);
+
+      const sizeA = setSizeGLB(minDistanceA.mesh);
+      const sizeMesh = setSizeGLB(meshClick);
+      const spaceZ =
+        minDistanceA.mesh.position.z - minDistanceD.mesh.position.z + sizeA.z;
+      const numMeshs = Number(inputValue2);
+      const offsetZ = (spaceZ - sizeMesh.z * inputValue2) / (numMeshs + 1);
+      for (let i = 0; i < inputValue2; i++) {
+        if (i === 0) {
+          meshClick.position.z =
+            minDistanceA.mesh.position.z - sizeA.z - offsetZ;
+        } else {
+          const clone = meshClick.clone();
+          const positionZ =
+            minDistanceA.mesh.position.z -
+            sizeA.z -
+            offsetZ * (i + 1) -
+            sizeMesh.z * i;
+          clone.position.z = positionZ;
+          cabinet.add(clone);
+        }
+      }
+    }
+    findPoint(cabinet);
   };
 
   const handleDragOver = (e) => {
@@ -1315,6 +1423,72 @@ function App() {
       <Sidebar modules={modules} onDragStart={handleDragStart} />
       <div className="canvas-container" onDragOver={handleDragOver}>
         <canvas id="myThreeJsCanvas" />
+      </div>
+      <div style={{ alignItems: 'center', marginLeft: '10px' }}>
+        <input
+          type="number"
+          placeholder="Nhập kích thước"
+          value={inputValue}
+          style={{
+            marginRight: '5px',
+            padding: '8px',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            fontSize: '16px',
+            width: '150px',
+          }}
+          onChange={(e) => setInputValue(e.target.value)}
+        />
+        <button
+          onClick={handleDone}
+          style={{
+            padding: '8px 12px',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '16px',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s ease',
+          }}
+          onMouseOver={(e) => (e.target.style.backgroundColor = '#45a049')}
+          onMouseOut={(e) => (e.target.style.backgroundColor = '#4CAF50')}
+        >
+          Đổi kích thước xắn bo cong
+        </button>
+      </div>
+      <div style={{ alignItems: 'center', marginLeft: '80px' }}>
+        <input
+          type="number"
+          placeholder="Nhập kích thước"
+          value={inputValue2}
+          style={{
+            marginRight: '5px',
+            padding: '8px',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            fontSize: '16px',
+            width: '150px',
+          }}
+          onChange={(e) => setInputValue2(e.target.value)}
+        />
+        <button
+          onClick={handleDuplicate}
+          style={{
+            padding: '8px 12px',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '16px',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s ease',
+          }}
+          onMouseOver={(e) => (e.target.style.backgroundColor = '#45a049')}
+          onMouseOut={(e) => (e.target.style.backgroundColor = '#4CAF50')}
+        >
+          Nhân bản
+        </button>
       </div>
     </div>
   );
