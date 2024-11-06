@@ -835,9 +835,10 @@ function App() {
 
       const size = new THREE.Vector3();
       box.getSize(size);
-      if (previewModelRef.current.userData.type === 1) {
+      if (previewModelRef.current.userData.type === 0) {
+        intersectionPoint.z = intersectionPoint.z + size.z / 2;
+      }else{
         intersectionPoint.y = intersectionPoint.y - size.y / 2;
-      } else {
         intersectionPoint.z = intersectionPoint.z + size.z / 2;
       }
 
