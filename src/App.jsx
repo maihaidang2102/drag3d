@@ -15,6 +15,7 @@ let door;
 let hearts = [];
 let boundingBoxes = [];
 let drawnObjects = [];
+let excludedTypesDoor = [3,4];
 
 function App() {
   const [sceneManager, setSceneManager] = useState(null);
@@ -896,11 +897,14 @@ function App() {
     });
   };
 
-  const findClosestZEdges = (intersectionPoint) => {
+  const findClosestZEdges = (intersectionPoint , excludedTypes ) => {
     let minDistanceD;
     let minDistanceA;
 
     hearts.forEach((point) => {
+      if (excludedTypes && excludedTypes.includes(point.mesh.userData?.type)) {
+        return;
+      }
       if (
         intersectionPoint.y < point.mY.max &&
         intersectionPoint.y > point.mY.min &&
@@ -923,11 +927,14 @@ function App() {
     return { minDistanceD, minDistanceA };
   };
 
-  const findClosestYEdges = (intersectionPoint) => {
+  const findClosestYEdges = (intersectionPoint , excludedTypes ) => {
     let minDistanceD;
     let minDistanceA;
 
     hearts.forEach((point) => {
+      if (excludedTypes && excludedTypes.includes(point.mesh.userData?.type)) {
+        return;
+      }
       if (
         intersectionPoint.z < point.mZ.max &&
         intersectionPoint.z > point.mZ.min &&
@@ -961,9 +968,9 @@ function App() {
           }
         });
         const { minDistanceD, minDistanceA } =
-          findClosestZEdges(intersectionPoint);
+          findClosestZEdges(intersectionPoint , excludedTypesDoor);
         const { minDistanceA: minDistanceE, minDistanceD: minDistanceF } =
-          findClosestYEdges(intersectionPoint);
+          findClosestYEdges(intersectionPoint,excludedTypesDoor);
 
         const sizeD = setSizeGLB(minDistanceD.mesh);
         const sizeA = setSizeGLB(minDistanceA.mesh);
@@ -1303,6 +1310,7 @@ function App() {
         const count = setInfoModel(model);
         scaleCabinetShelfU(model, originalSize, sizeZ, count);
         model.userData.type = moduleData.type;
+        setInfoModelChild(model);
         cabinet.add(model);
         findPoint(cabinet);
       });
