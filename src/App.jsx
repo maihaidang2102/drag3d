@@ -5,6 +5,7 @@ import CannonDebugger from 'cannon-es-debugger';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import SceneInit from './lib/SceneInit';
 import './App.css';
+import { DragControls } from 'three/examples/jsm/controls/DragControls';
 import Sidebar from './lib/Sidebar';
 
 let display;
@@ -15,7 +16,8 @@ let door;
 let hearts = [];
 let boundingBoxes = [];
 let drawnObjects = [];
-let excludedTypesDoor = [3,4];
+let excludedTypesDoor = [3, 4];
+let originalMaterial = null;
 
 function App() {
   const [sceneManager, setSceneManager] = useState(null);
@@ -289,48 +291,37 @@ function App() {
     const world = new CANNON.World({
       gravity: new CANNON.Vec3(0, -9.82, 0),
     });
-    const textureLoader = new THREE.TextureLoader();
-    const floorTexture = textureLoader.load('assets/images (1).jpg');
-
-    floorTexture.wrapS = THREE.RepeatWrapping;
-    floorTexture.wrapT = THREE.RepeatWrapping;
-    floorTexture.repeat.set(4, 4);
-
+    // Plane material without texture
     const planeM = new THREE.MeshStandardMaterial({
-      map: floorTexture,
+      color: 0xaaaaaa, // Set a base color for the floor plane
       side: THREE.DoubleSide,
-      transparent: true, // Cho phép độ trong suốt
-      opacity: 0,
+      transparent: true,
+      opacity: 0, // Adjust as needed
     });
 
     const planeG = new THREE.PlaneGeometry(100, 100);
-
     const groundPlane = new THREE.Mesh(planeG, planeM);
-
     groundPlane.position.set(0, 0, 0);
     groundPlane.rotation.x = -Math.PI / 2;
-
     display.scene.add(groundPlane);
-    const wallTexture = textureLoader.load(
-      'assets/texture-roughcast-plaster-wall-preview.jpg'
-    ); // Đường dẫn đến file ảnh của texture
 
-    wallTexture.wrapS = THREE.RepeatWrapping;
-    wallTexture.wrapT = THREE.RepeatWrapping;
-    wallTexture.repeat.set(4, 4);
+    // Wall plane material without texture
     const planeM2 = new THREE.MeshStandardMaterial({
-      map: wallTexture,
+      color: 0xcccccc, // Set a base color for the wall plane
       side: THREE.DoubleSide,
-      transparent: true, // Cho phép độ trong suốt
-      opacity: 0,
+      transparent: true,
+      opacity: 0, // Adjust as needed
     });
+
     const planeG2 = new THREE.PlaneGeometry(100, 100);
     const groundPlane2 = new THREE.Mesh(planeG2, planeM2);
     groundPlane2.position.set(0, 0, 0);
     groundPlane2.rotation.y = Math.PI / 2;
     display.scene.add(groundPlane2);
 
+    // List of planes for checking
     planesToCheck = [groundPlane, groundPlane2];
+
     planeyz = groundPlane2;
 
     const loader = new GLTFLoader();
@@ -342,6 +333,8 @@ function App() {
       display.scene.add(model);
       findPoint(cabinet);
     });
+
+    
 
     const cannonDebugger = new CannonDebugger(display.scene, world);
 
@@ -409,290 +402,290 @@ function App() {
 
     const intersectionPoint = intersects[0].point;
 
-    if (isDraggingRef.current && previewModelRef.current) {
-      if (previewModelRef.current.userData.type == 0) {
-        const { minDistanceD, minDistanceA } =
-          findClosestZEdges(intersectionPoint);
+    // if (isDraggingRef.current && previewModelRef.current) {
+    //   if (previewModelRef.current.userData.type == 0) {
+    //     const { minDistanceD, minDistanceA } =
+    //       findClosestZEdges(intersectionPoint);
 
-        if (minDistanceD && minDistanceA) {
-          const sizeD = setSizeGLB(minDistanceD.mesh);
-          const sizeA = setSizeGLB(minDistanceA.mesh);
+    //     if (minDistanceD && minDistanceA) {
+    //       const sizeD = setSizeGLB(minDistanceD.mesh);
+    //       const sizeA = setSizeGLB(minDistanceA.mesh);
 
-          const scaleY = Math.abs(
-            minDistanceD.mesh.userData.position.z -
-              minDistanceA.mesh.userData.position.z
-          );
-          const originalSize = setSizeGLB(previewModelRef.current);
-          const originalScale = previewModelRef.current.scale.clone();
-          const scaleZ =
-            ((scaleY - (sizeD.z / 2 + sizeA.z / 2)) * originalScale.z) /
-            originalSize.z;
-          previewModelRef.current.scale.set(1, 1, scaleZ);
+    //       const scaleY = Math.abs(
+    //         minDistanceD.mesh.userData.position.z -
+    //           minDistanceA.mesh.userData.position.z
+    //       );
+    //       const originalSize = setSizeGLB(previewModelRef.current);
+    //       const originalScale = previewModelRef.current.scale.clone();
+    //       const scaleZ =
+    //         ((scaleY - (sizeD.z / 2 + sizeA.z / 2)) * originalScale.z) /
+    //         originalSize.z;
+    //       previewModelRef.current.scale.set(1, 1, scaleZ);
 
-          /// line
+    //       /// line
 
-          const { minDistanceA: minDistanceE, minDistanceD: minDistanceF } =
-            findClosestYEdges(intersectionPoint);
+    //       const { minDistanceA: minDistanceE, minDistanceD: minDistanceF } =
+    //         findClosestYEdges(intersectionPoint);
 
-          const size = setSizeGLB(minDistanceE.mesh);
-          const size1 = setSizeGLB(previewModelRef.current);
-          const size2 = setSizeGLB(minDistanceF.mesh);
+    //       const size = setSizeGLB(minDistanceE.mesh);
+    //       const size1 = setSizeGLB(previewModelRef.current);
+    //       const size2 = setSizeGLB(minDistanceF.mesh);
 
-          /// giữa - trên
+    //       /// giữa - trên
 
-          const startPoint = new THREE.Vector3(
-            minDistanceE.mesh.userData.position.x + size.x + 0.01,
-            previewModelRef.current.position.y + size1.y,
-            previewModelRef.current.position.z - size1.z / 2
-          );
+    //       const startPoint = new THREE.Vector3(
+    //         minDistanceE.mesh.userData.position.x + size.x + 0.01,
+    //         previewModelRef.current.position.y + size1.y,
+    //         previewModelRef.current.position.z - size1.z / 2
+    //       );
 
-          const endPoint = new THREE.Vector3(
-            minDistanceE.mesh.userData.position.x + size.x + 0.01,
-            minDistanceE.mesh.userData.position.y,
-            previewModelRef.current.position.z - size1.z / 2
-          );
+    //       const endPoint = new THREE.Vector3(
+    //         minDistanceE.mesh.userData.position.x + size.x + 0.01,
+    //         minDistanceE.mesh.userData.position.y,
+    //         previewModelRef.current.position.z - size1.z / 2
+    //       );
 
-          // Create or update line from startPoint to endPoint along Y-axis
-          if (!line) {
-            const lineGeometry = new THREE.BufferGeometry().setFromPoints([
-              startPoint,
-              endPoint,
-            ]);
-            line = new THREE.Line(lineGeometry, lineMaterial);
-            addObjectToScene(line);
-          } else {
-            const points = [startPoint, endPoint];
-            line.geometry.setFromPoints(points);
-          }
+    //       // Create or update line from startPoint to endPoint along Y-axis
+    //       if (!line) {
+    //         const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+    //           startPoint,
+    //           endPoint,
+    //         ]);
+    //         line = new THREE.Line(lineGeometry, lineMaterial);
+    //         addObjectToScene(line);
+    //       } else {
+    //         const points = [startPoint, endPoint];
+    //         line.geometry.setFromPoints(points);
+    //       }
 
-          // Calculate distance
-          const distance = startPoint.distanceTo(endPoint).toFixed(2);
+    //       // Calculate distance
+    //       const distance = startPoint.distanceTo(endPoint).toFixed(2);
 
-          const caculatePosition =
-            (
-              minDistanceE.mesh.userData.position.y -
-              previewModelRef.current.position.y +
-              size1.y
-            ).toFixed(3) * 1000;
+    //       const caculatePosition =
+    //         (
+    //           minDistanceE.mesh.userData.position.y -
+    //           previewModelRef.current.position.y +
+    //           size1.y
+    //         ).toFixed(3) * 1000;
 
-          // Create or update text sprite
-          if (!textSprite) {
-            const textMaterial = new THREE.SpriteMaterial({
-              map: createTextTexture(caculatePosition, 'black'),
-              transparent: true,
-            });
-            textSprite = new THREE.Sprite(textMaterial);
-            addObjectToScene(textSprite);
-          } else {
-            textSprite.material.map = createTextTexture(
-              caculatePosition,
-              'black'
-            );
-          }
+    //       // Create or update text sprite
+    //       if (!textSprite) {
+    //         const textMaterial = new THREE.SpriteMaterial({
+    //           map: createTextTexture(caculatePosition, 'black'),
+    //           transparent: true,
+    //         });
+    //         textSprite = new THREE.Sprite(textMaterial);
+    //         addObjectToScene(textSprite);
+    //       } else {
+    //         textSprite.material.map = createTextTexture(
+    //           caculatePosition,
+    //           'black'
+    //         );
+    //       }
 
-          // Position text sprite
-          textSprite.position.copy(startPoint).lerp(endPoint, 0.5);
-          textSprite.position.z += 0.05;
+    //       // Position text sprite
+    //       textSprite.position.copy(startPoint).lerp(endPoint, 0.5);
+    //       textSprite.position.z += 0.05;
 
-          /// giữa - trên
+    //       /// giữa - trên
 
-          /// giữa - dưới
-          const startPoint1 = new THREE.Vector3(
-            minDistanceF.mesh.userData.position.x + size.x + 0.01,
-            previewModelRef.current.position.y,
-            previewModelRef.current.position.z - size1.z / 2
-          );
+    //       /// giữa - dưới
+    //       const startPoint1 = new THREE.Vector3(
+    //         minDistanceF.mesh.userData.position.x + size.x + 0.01,
+    //         previewModelRef.current.position.y,
+    //         previewModelRef.current.position.z - size1.z / 2
+    //       );
 
-          const endPoint1 = new THREE.Vector3(
-            minDistanceF.mesh.userData.position.x + size.x + 0.01,
-            minDistanceF.mesh.userData.position.y + size2.y,
-            previewModelRef.current.position.z - size1.z / 2
-          );
+    //       const endPoint1 = new THREE.Vector3(
+    //         minDistanceF.mesh.userData.position.x + size.x + 0.01,
+    //         minDistanceF.mesh.userData.position.y + size2.y,
+    //         previewModelRef.current.position.z - size1.z / 2
+    //       );
 
-          if (!line2) {
-            const lineGeometry = new THREE.BufferGeometry().setFromPoints([
-              startPoint,
-              endPoint,
-            ]);
-            line2 = new THREE.Line(lineGeometry, lineMaterial);
-            addObjectToScene(line2);
-          } else {
-            const points = [startPoint1, endPoint1];
-            line2.geometry.setFromPoints(points);
-          }
+    //       if (!line2) {
+    //         const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+    //           startPoint,
+    //           endPoint,
+    //         ]);
+    //         line2 = new THREE.Line(lineGeometry, lineMaterial);
+    //         addObjectToScene(line2);
+    //       } else {
+    //         const points = [startPoint1, endPoint1];
+    //         line2.geometry.setFromPoints(points);
+    //       }
 
-          const caculatePosition1 =
-            (
-              previewModelRef.current.position.y -
-              minDistanceF.mesh.userData.position.y +
-              size2.y
-            ).toFixed(3) * 1000;
+    //       const caculatePosition1 =
+    //         (
+    //           previewModelRef.current.position.y -
+    //           minDistanceF.mesh.userData.position.y +
+    //           size2.y
+    //         ).toFixed(3) * 1000;
 
-          if (!textSprite2) {
-            const textMaterial = new THREE.SpriteMaterial({
-              map: createTextTexture(caculatePosition1, 'black'),
-              transparent: true,
-            });
-            textSprite2 = new THREE.Sprite(textMaterial);
-            addObjectToScene(textSprite2);
-          } else {
-            textSprite2.material.map = createTextTexture(
-              caculatePosition1,
-              'black'
-            );
-          }
+    //       if (!textSprite2) {
+    //         const textMaterial = new THREE.SpriteMaterial({
+    //           map: createTextTexture(caculatePosition1, 'black'),
+    //           transparent: true,
+    //         });
+    //         textSprite2 = new THREE.Sprite(textMaterial);
+    //         addObjectToScene(textSprite2);
+    //       } else {
+    //         textSprite2.material.map = createTextTexture(
+    //           caculatePosition1,
+    //           'black'
+    //         );
+    //       }
 
-          // Position text sprite
-          textSprite2.position.copy(startPoint).lerp(endPoint1, 0.5);
-          textSprite2.position.z += 0.05;
-          /// giữa - dưới
+    //       // Position text sprite
+    //       textSprite2.position.copy(startPoint).lerp(endPoint1, 0.5);
+    //       textSprite2.position.z += 0.05;
+    //       /// giữa - dưới
 
-          /// line
-        }
-      } else if (previewModelRef.current.userData.type == 1) {
-        const { minDistanceD, minDistanceA } =
-          findClosestYEdges(intersectionPoint);
+    //       /// line
+    //     }
+    //   } else if (previewModelRef.current.userData.type == 1) {
+    //     const { minDistanceD, minDistanceA } =
+    //       findClosestYEdges(intersectionPoint);
 
-        if (minDistanceD && minDistanceA) {
-          const sizeD = setSizeGLB(minDistanceD.mesh);
-          const sizeA = setSizeGLB(minDistanceA.mesh);
+    //     if (minDistanceD && minDistanceA) {
+    //       const sizeD = setSizeGLB(minDistanceD.mesh);
+    //       const sizeA = setSizeGLB(minDistanceA.mesh);
 
-          const scaleZ = Math.abs(
-            minDistanceD.mesh.userData.position.y -
-              minDistanceA.mesh.userData.position.y
-          );
-          const originalSize = setSizeGLB(previewModelRef.current);
-          const originalScale = previewModelRef.current.scale.clone();
-          const scaleY =
-            ((scaleZ - (sizeD.y / 2 + sizeA.y / 2)) * originalScale.y) /
-            originalSize.y;
+    //       const scaleZ = Math.abs(
+    //         minDistanceD.mesh.userData.position.y -
+    //           minDistanceA.mesh.userData.position.y
+    //       );
+    //       const originalSize = setSizeGLB(previewModelRef.current);
+    //       const originalScale = previewModelRef.current.scale.clone();
+    //       const scaleY =
+    //         ((scaleZ - (sizeD.y / 2 + sizeA.y / 2)) * originalScale.y) /
+    //         originalSize.y;
 
-          previewModelRef.current.scale.y = scaleY;
+    //       previewModelRef.current.scale.y = scaleY;
 
-          /// line
+    //       /// line
 
-          const { minDistanceA: minDistanceE, minDistanceD: minDistanceF } =
-            findClosestZEdges(intersectionPoint);
+    //       const { minDistanceA: minDistanceE, minDistanceD: minDistanceF } =
+    //         findClosestZEdges(intersectionPoint);
 
-          const size = setSizeGLB(minDistanceE.mesh);
-          const size1 = setSizeGLB(previewModelRef.current);
-          const size2 = setSizeGLB(minDistanceF.mesh);
+    //       const size = setSizeGLB(minDistanceE.mesh);
+    //       const size1 = setSizeGLB(previewModelRef.current);
+    //       const size2 = setSizeGLB(minDistanceF.mesh);
 
-          /// giữa - trái
+    //       /// giữa - trái
 
-          const startPoint = new THREE.Vector3(
-            minDistanceE.mesh.userData.position.x + size.x + 0.01,
-            previewModelRef.current.position.y + size1.y / 2,
-            previewModelRef.current.position.z
-          );
+    //       const startPoint = new THREE.Vector3(
+    //         minDistanceE.mesh.userData.position.x + size.x + 0.01,
+    //         previewModelRef.current.position.y + size1.y / 2,
+    //         previewModelRef.current.position.z
+    //       );
 
-          const endPoint = new THREE.Vector3(
-            minDistanceE.mesh.userData.position.x + size.x + 0.01,
-            previewModelRef.current.position.y + size1.y / 2,
-            minDistanceE.mesh.userData.position.z - size.z
-          );
+    //       const endPoint = new THREE.Vector3(
+    //         minDistanceE.mesh.userData.position.x + size.x + 0.01,
+    //         previewModelRef.current.position.y + size1.y / 2,
+    //         minDistanceE.mesh.userData.position.z - size.z
+    //       );
 
-          // Create or update line from startPoint to endPoint along Y-axis
-          if (!line) {
-            const lineGeometry = new THREE.BufferGeometry().setFromPoints([
-              startPoint,
-              endPoint,
-            ]);
-            line = new THREE.Line(lineGeometry, lineMaterial);
-            addObjectToScene(line);
-          } else {
-            const points = [startPoint, endPoint];
-            line.geometry.setFromPoints(points);
-          }
+    //       // Create or update line from startPoint to endPoint along Y-axis
+    //       if (!line) {
+    //         const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+    //           startPoint,
+    //           endPoint,
+    //         ]);
+    //         line = new THREE.Line(lineGeometry, lineMaterial);
+    //         addObjectToScene(line);
+    //       } else {
+    //         const points = [startPoint, endPoint];
+    //         line.geometry.setFromPoints(points);
+    //       }
 
-          // Calculate distance
-          const distance = startPoint.distanceTo(endPoint).toFixed(2);
+    //       // Calculate distance
+    //       const distance = startPoint.distanceTo(endPoint).toFixed(2);
 
-          const caculatePosition =
-            (
-              minDistanceE.mesh.userData.position.z -
-              previewModelRef.current.position.z +
-              size.z
-            ).toFixed(3) * 1000;
+    //       const caculatePosition =
+    //         (
+    //           minDistanceE.mesh.userData.position.z -
+    //           previewModelRef.current.position.z +
+    //           size.z
+    //         ).toFixed(3) * 1000;
 
-          // Create or update text sprite
-          if (!textSprite) {
-            const textMaterial = new THREE.SpriteMaterial({
-              map: createTextTexture(caculatePosition, 'black'),
-              transparent: true,
-            });
-            textSprite = new THREE.Sprite(textMaterial);
-            addObjectToScene(textSprite);
-          } else {
-            textSprite.material.map = createTextTexture(
-              caculatePosition,
-              'black'
-            );
-          }
+    //       // Create or update text sprite
+    //       if (!textSprite) {
+    //         const textMaterial = new THREE.SpriteMaterial({
+    //           map: createTextTexture(caculatePosition, 'black'),
+    //           transparent: true,
+    //         });
+    //         textSprite = new THREE.Sprite(textMaterial);
+    //         addObjectToScene(textSprite);
+    //       } else {
+    //         textSprite.material.map = createTextTexture(
+    //           caculatePosition,
+    //           'black'
+    //         );
+    //       }
 
-          // Position text sprite
-          textSprite.position.copy(startPoint).lerp(endPoint, 0.5);
-          textSprite.position.y += 0.05;
+    //       // Position text sprite
+    //       textSprite.position.copy(startPoint).lerp(endPoint, 0.5);
+    //       textSprite.position.y += 0.05;
 
-          /// giữa - trên
+    //       /// giữa - trên
 
-          /// giữa - dưới
-          const startPoint1 = new THREE.Vector3(
-            minDistanceF.mesh.userData.position.x + size.x + 0.01,
-            previewModelRef.current.position.y + size1.y / 2,
-            previewModelRef.current.position.z - size1.z
-          );
+    //       /// giữa - dưới
+    //       const startPoint1 = new THREE.Vector3(
+    //         minDistanceF.mesh.userData.position.x + size.x + 0.01,
+    //         previewModelRef.current.position.y + size1.y / 2,
+    //         previewModelRef.current.position.z - size1.z
+    //       );
 
-          const endPoint1 = new THREE.Vector3(
-            minDistanceF.mesh.userData.position.x + size.x + 0.01,
-            previewModelRef.current.position.y + size1.y / 2,
-            minDistanceF.mesh.userData.position.z
-          );
+    //       const endPoint1 = new THREE.Vector3(
+    //         minDistanceF.mesh.userData.position.x + size.x + 0.01,
+    //         previewModelRef.current.position.y + size1.y / 2,
+    //         minDistanceF.mesh.userData.position.z
+    //       );
 
-          if (!line2) {
-            const lineGeometry = new THREE.BufferGeometry().setFromPoints([
-              startPoint,
-              endPoint,
-            ]);
-            line2 = new THREE.Line(lineGeometry, lineMaterial);
-            addObjectToScene(line2);
-          } else {
-            const points = [startPoint1, endPoint1];
-            line2.geometry.setFromPoints(points);
-          }
+    //       if (!line2) {
+    //         const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+    //           startPoint,
+    //           endPoint,
+    //         ]);
+    //         line2 = new THREE.Line(lineGeometry, lineMaterial);
+    //         addObjectToScene(line2);
+    //       } else {
+    //         const points = [startPoint1, endPoint1];
+    //         line2.geometry.setFromPoints(points);
+    //       }
 
-          const caculatePosition1 =
-            (
-              previewModelRef.current.position.z -
-              minDistanceF.mesh.userData.position.z +
-              size2.z
-            ).toFixed(3) * 1000;
+    //       const caculatePosition1 =
+    //         (
+    //           previewModelRef.current.position.z -
+    //           minDistanceF.mesh.userData.position.z +
+    //           size2.z
+    //         ).toFixed(3) * 1000;
 
-          if (!textSprite2) {
-            const textMaterial = new THREE.SpriteMaterial({
-              map: createTextTexture(caculatePosition1, 'black'),
-              transparent: true,
-            });
-            textSprite2 = new THREE.Sprite(textMaterial);
-            addObjectToScene(textSprite2);
-          } else {
-            textSprite2.material.map = createTextTexture(
-              caculatePosition1,
-              'black'
-            );
-          }
+    //       if (!textSprite2) {
+    //         const textMaterial = new THREE.SpriteMaterial({
+    //           map: createTextTexture(caculatePosition1, 'black'),
+    //           transparent: true,
+    //         });
+    //         textSprite2 = new THREE.Sprite(textMaterial);
+    //         addObjectToScene(textSprite2);
+    //       } else {
+    //         textSprite2.material.map = createTextTexture(
+    //           caculatePosition1,
+    //           'black'
+    //         );
+    //       }
 
-          // Position text sprite
-          textSprite2.position.copy(startPoint).lerp(endPoint1, 0.5);
-          textSprite2.position.y += 0.05;
-          /// giữa - dưới
+    //       // Position text sprite
+    //       textSprite2.position.copy(startPoint).lerp(endPoint1, 0.5);
+    //       textSprite2.position.y += 0.05;
+    //       /// giữa - dưới
 
-          /// line
-        }
-      } else if (previewModelRef.current.userData.type == 2) {
-        console.log('123');
-      }
-    }
+    //       /// line
+    //     }
+    //   } else if (previewModelRef.current.userData.type == 2) {
+    //     console.log('123');
+    //   }
+    // }
   }, []);
 
   const handleButtonDown = useCallback(
@@ -706,6 +699,27 @@ function App() {
     },
     [display]
   );
+
+  function createWireframeBox(mesh, color = 0x569DFF, lineWidth = 2) {
+    const box = new THREE.Box3().setFromObject(mesh);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+  
+    const geometry = new THREE.BoxGeometry(size.x, size.y, size.z);
+    const wireframeGeometry = new THREE.WireframeGeometry(geometry);
+  
+    const material = new THREE.LineBasicMaterial({
+      color: color,
+      linewidth: lineWidth, // Độ dày đường kẻ
+    });
+  
+    const wireframe = new THREE.LineSegments(wireframeGeometry, material);
+    wireframe.position.copy(center);
+  
+    return wireframe;
+  }
 
   const handleMouseClick = useCallback(
     (event) => {
@@ -767,52 +781,82 @@ function App() {
         }
 
         if (meshClicked.userData.type !== undefined) {
-          const boundingBox = new THREE.Box3().setFromObject(meshClicked);
-          const center = new THREE.Vector3();
-          boundingBox.getCenter(center);
-
-          const { minDistanceD, minDistanceA } = findClosestZEdges(center);
-          const { minDistanceA: minDistanceE, minDistanceD: minDistanceF } =
-            findClosestYEdges(center);
-
-          const sizeD = setSizeGLB(minDistanceD.mesh);
-          const sizeA = setSizeGLB(minDistanceA.mesh);
-          const sizeE = setSizeGLB(minDistanceE.mesh);
-          const sizeF = setSizeGLB(minDistanceF.mesh);
-
-         
-
-          const offsetX = Math.max(
-            minDistanceD.mesh.userData.position.x + sizeD.x,
-            minDistanceA.mesh.userData.position.x + sizeA.x,
-            minDistanceE.mesh.userData.position.x + sizeE.x,
-            minDistanceF.mesh.userData.position.x + sizeF.x
-          );
-
-          const offsetZ = minDistanceA.mesh.userData.position.z+((minDistanceD.mesh.userData.position.z - minDistanceA.mesh.userData.position.z - sizeA.z)/2);
-          const offsetY = minDistanceF.mesh.userData.position.y +(( minDistanceE.mesh.userData.position.y - minDistanceF.mesh.userData.position.y + sizeF.y)/2);
-
-          const width = offsetX + 0.02;
-          const height = minDistanceE.mesh.userData.position.y - minDistanceF.mesh.userData.position.y - sizeF.y; 
-          const depth = minDistanceA.mesh.userData.position.z - minDistanceD.mesh.userData.position.z - sizeA.z;
-
-          const geometry = new THREE.BoxGeometry(width, height, depth); 
-          const material = new THREE.MeshStandardMaterial({
-            color: 0x00BFFF, // Màu sắc
-            metalness: 0.5, // Chất liệu kim loại
-            roughness: 0.5, // Độ nhám
-            transparent: true,  
-            opacity : 0.5
-          });
-
-          // Tạo Mesh từ geometry và material
-          const box = new THREE.Mesh(geometry, material);
-
-          // Đặt vị trí cho khối hộp
-          box.position.set(offsetX/2, offsetY, offsetZ);
-          display.scene.add(box);
-          boxHelperRef.current = box;
+          // if (originalMaterial) {
+          //   meshClicked.material = originalMaterial;
+          // }
+          // originalMaterial = meshClicked.material;
+          // meshClicked.material = new THREE.MeshStandardMaterial({
+          //   color: 0xff0000, // Màu đỏ
+          //   emissive: 0xff0000, // Phát sáng
+          //   emissiveIntensity: 0.5,
+          //   metalness: 0.5,
+          //   roughness: 0.3,
+          // });
+          const wireframeBox = createWireframeBox(meshClicked, 0x00ff00, 5);
+          display.scene.add(wireframeBox);
         }
+
+        // if (meshClicked.userData.type !== undefined) {
+        //   const boundingBox = new THREE.Box3().setFromObject(meshClicked);
+        //   const center = new THREE.Vector3();
+        //   boundingBox.getCenter(center);
+
+        //   const { minDistanceD, minDistanceA } = findClosestZEdges(center);
+        //   const { minDistanceA: minDistanceE, minDistanceD: minDistanceF } =
+        //     findClosestYEdges(center);
+
+        //   const sizeD = setSizeGLB(minDistanceD.mesh);
+        //   const sizeA = setSizeGLB(minDistanceA.mesh);
+        //   const sizeE = setSizeGLB(minDistanceE.mesh);
+        //   const sizeF = setSizeGLB(minDistanceF.mesh);
+
+        //   const offsetX = Math.max(
+        //     minDistanceD.mesh.userData.position.x + sizeD.x,
+        //     minDistanceA.mesh.userData.position.x + sizeA.x,
+        //     minDistanceE.mesh.userData.position.x + sizeE.x,
+        //     minDistanceF.mesh.userData.position.x + sizeF.x
+        //   );
+
+        //   const offsetZ =
+        //     minDistanceA.mesh.userData.position.z +
+        //     (minDistanceD.mesh.userData.position.z -
+        //       minDistanceA.mesh.userData.position.z -
+        //       sizeA.z) /
+        //       2;
+        //   const offsetY =
+        //     minDistanceF.mesh.userData.position.y +
+        //     (minDistanceE.mesh.userData.position.y -
+        //       minDistanceF.mesh.userData.position.y +
+        //       sizeF.y) /
+        //       2;
+
+        //   const width = offsetX + 0.02;
+        //   const height =
+        //     minDistanceE.mesh.userData.position.y -
+        //     minDistanceF.mesh.userData.position.y -
+        //     sizeF.y;
+        //   const depth =
+        //     minDistanceA.mesh.userData.position.z -
+        //     minDistanceD.mesh.userData.position.z -
+        //     sizeA.z;
+
+        //   const geometry = new THREE.BoxGeometry(width, height, depth);
+        //   const material = new THREE.MeshStandardMaterial({
+        //     color: 0x00bfff, // Màu sắc
+        //     metalness: 0.5, // Chất liệu kim loại
+        //     roughness: 0.5, // Độ nhám
+        //     transparent: true,
+        //     opacity: 0.5,
+        //   });
+
+        //   // Tạo Mesh từ geometry và material
+        //   const box = new THREE.Mesh(geometry, material);
+
+        //   // Đặt vị trí cho khối hộp
+        //   box.position.set(offsetX / 2, offsetY, offsetZ);
+        //   display.scene.add(box);
+        //   boxHelperRef.current = box;
+        // }
       }
     },
     [display]
@@ -838,7 +882,7 @@ function App() {
       box.getSize(size);
       if (previewModelRef.current.userData.type === 0) {
         intersectionPoint.z = intersectionPoint.z + size.z / 2;
-      }else{
+      } else {
         intersectionPoint.y = intersectionPoint.y - size.y / 2;
         intersectionPoint.z = intersectionPoint.z + size.z / 2;
       }
@@ -897,7 +941,7 @@ function App() {
     });
   };
 
-  const findClosestZEdges = (intersectionPoint , excludedTypes ) => {
+  const findClosestZEdges = (intersectionPoint, excludedTypes) => {
     let minDistanceD;
     let minDistanceA;
 
@@ -927,7 +971,7 @@ function App() {
     return { minDistanceD, minDistanceA };
   };
 
-  const findClosestYEdges = (intersectionPoint , excludedTypes ) => {
+  const findClosestYEdges = (intersectionPoint, excludedTypes) => {
     let minDistanceD;
     let minDistanceA;
 
@@ -959,6 +1003,10 @@ function App() {
 
   const loadRealModelDoor = (moduleData, intersectionPoint) => {
     const loader = new GLTFLoader();
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    let selectedControlPoint = null;
     if (moduleData.type == 6) {
       loader.load(moduleData.model, (gltf) => {
         let model;
@@ -967,10 +1015,12 @@ function App() {
             model = child;
           }
         });
-        const { minDistanceD, minDistanceA } =
-          findClosestZEdges(intersectionPoint , excludedTypesDoor);
+        const { minDistanceD, minDistanceA } = findClosestZEdges(
+          intersectionPoint,
+          excludedTypesDoor
+        );
         const { minDistanceA: minDistanceE, minDistanceD: minDistanceF } =
-          findClosestYEdges(intersectionPoint,excludedTypesDoor);
+          findClosestYEdges(intersectionPoint, excludedTypesDoor);
 
         const sizeD = setSizeGLB(minDistanceD.mesh);
         const sizeA = setSizeGLB(minDistanceA.mesh);
@@ -1004,6 +1054,124 @@ function App() {
         model.scale.z = scaleZ;
         display.scene.add(model);
         // findPoint(cabinet);
+
+        const boundingBox = new THREE.Box3().setFromObject(model);
+
+        // Tạo các điểm điều khiển
+        const controlPoints = {};
+        const corners = {
+          topLeft: new THREE.Vector3(
+            boundingBox.min.x,
+            boundingBox.max.y,
+            boundingBox.max.z
+          ),
+          topRight: new THREE.Vector3(
+            boundingBox.max.x,
+            boundingBox.max.y,
+            boundingBox.max.z
+          ),
+          bottomLeft: new THREE.Vector3(
+            boundingBox.min.x,
+            boundingBox.min.y,
+            boundingBox.max.z
+          ),
+          bottomRight: new THREE.Vector3(
+            boundingBox.max.x,
+            boundingBox.min.y,
+            boundingBox.max.z
+          ),
+        };
+
+        Object.keys(corners).forEach((key) => {
+          const sphereGeometry = new THREE.SphereGeometry(0.05, 16, 16);
+          const sphereMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff0000,
+          });
+          const controlPoint = new THREE.Mesh(sphereGeometry, sphereMaterial);
+          controlPoint.position.copy(corners[key]);
+          controlPoint.userData.corner = key;
+          display.scene.add(controlPoint);
+          controlPoints[key] = controlPoint;
+        });
+
+        // Xử lý sự kiện kéo thả điểm điều khiển dựa trên vị trí chuột
+        const onMouseMove = (event) => {
+          if (selectedControlPoint) {
+            // Cập nhật vị trí chuột trong không gian -1 đến 1
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, display.camera);
+            const intersects = raycaster.intersectObjects([
+              display.groundPlane,
+            ]); // Xác định mặt phẳng để kéo thả
+            if (intersects.length > 0) {
+              const intersectionPoint = intersects[0].point;
+
+              // Cập nhật vị trí của điểm điều khiển
+              selectedControlPoint.position.copy(intersectionPoint);
+
+              // Tính toán scale mới của cửa dựa trên vị trí kéo thả
+              const newHeight = Math.abs(
+                controlPoints.topLeft.position.y -
+                  controlPoints.bottomLeft.position.y
+              );
+              const newWidth = Math.abs(
+                controlPoints.topRight.position.z -
+                  controlPoints.topLeft.position.z
+              );
+
+              model.scale.y = newHeight / originalSize.y;
+              model.scale.z = newWidth / originalSize.z;
+
+              // Cập nhật lại bounding box và vị trí các điểm điều khiển
+              boundingBox.setFromObject(model);
+              controlPoints.topLeft.position.set(
+                boundingBox.min.x,
+                boundingBox.max.y,
+                boundingBox.max.z
+              );
+              controlPoints.topRight.position.set(
+                boundingBox.max.x,
+                boundingBox.max.y,
+                boundingBox.max.z
+              );
+              controlPoints.bottomLeft.position.set(
+                boundingBox.min.x,
+                boundingBox.min.y,
+                boundingBox.max.z
+              );
+              controlPoints.bottomRight.position.set(
+                boundingBox.max.x,
+                boundingBox.min.y,
+                boundingBox.max.z
+              );
+            }
+          }
+        };
+
+        const onMouseDown = (event) => {
+          // Kiểm tra xem có nhấn vào điểm điều khiển nào không
+          mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+          mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+          raycaster.setFromCamera(mouse, display.camera);
+          const intersects = raycaster.intersectObjects(
+            Object.values(controlPoints)
+          );
+          if (intersects.length > 0) {
+            selectedControlPoint = intersects[0].object;
+          }
+        };
+
+        const onMouseUp = () => {
+          selectedControlPoint = null; // Thả điểm điều khiển
+        };
+
+        // Lắng nghe sự kiện chuột
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mousedown', onMouseDown);
+        window.addEventListener('mouseup', onMouseUp);
       });
     }
   };
